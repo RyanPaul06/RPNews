@@ -113,9 +113,14 @@ class RPNewsEngine:
         self.session = None
         self.sources = self._initialize_sources()
         self._setup_database()
-        
-        # Start background collection
-        asyncio.create_task(self.background_collection())
+        self.background_task = None
+        logger.info("📰 RPNews Engine initialized")
+    
+    def start_background_collection(self):
+        """Start background collection task"""
+        if self.background_task is None:
+            self.background_task = asyncio.create_task(self.background_collection())
+            logger.info("🔄 Background collection task started")
     
     def _initialize_sources(self) -> Dict[str, List[Dict]]:
         """Complete source list - 60+ premium sources"""
@@ -464,6 +469,12 @@ app.add_middleware(
 
 # Initialize the news engine
 news_engine = RPNewsEngine()
+
+@app.on_event("startup")
+async def startup_event():
+    """Start background tasks when FastAPI starts"""
+    logger.info("🚀 FastAPI startup - starting background collection")
+    news_engine.start_background_collection()
 
 # Main dashboard
 @app.get("/", response_class=HTMLResponse)
