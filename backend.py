@@ -1,5 +1,5 @@
 """
-IntelliNews - Free News Intelligence Platform
+RPNews - Free News Intelligence Platform
 Automatically collects and summarizes news from 60+ sources
 Deploy to Railway, Render, or Fly.io for free hosting
 """
@@ -24,7 +24,7 @@ import uvicorn
 
 # Cloud deployment configuration
 PORT = int(os.environ.get("PORT", 8000))
-DATABASE_URL = os.environ.get("DATABASE_URL", "intellinews.db")
+DATABASE_URL = os.environ.get("DATABASE_URL", "rpnews.db")
 
 # AI Summarization setup
 try:
@@ -52,8 +52,8 @@ class NewsArticle:
     tags: List[str]
     extracted_at: datetime
 
-class IntelliNewsAI:
-    """AI-powered news summarization"""
+class RPNewsAI:
+    """AI-powered news summarization for RPNews"""
     
     def __init__(self):
         self.summarizer = None
@@ -154,12 +154,12 @@ class IntelliNewsAI:
         
         return f"{config['icon']} Key Point: {title} 📝 Details: {key_info} {config['impact']}"
 
-class IntelliNewsEngine:
-    """Core news intelligence engine"""
+class RPNewsEngine:
+    """Core news intelligence engine for RPNews"""
     
-    def __init__(self, db_path: str = "intellinews.db"):
+    def __init__(self, db_path: str = "rpnews.db"):
         self.db_path = db_path
-        self.ai = IntelliNewsAI()
+        self.ai = RPNewsAI()
         self.session = None
         self.sources = self._initialize_sources()
         self._setup_database()
@@ -311,7 +311,7 @@ class IntelliNewsEngine:
                 logger.info("🔄 Background collection starting...")
                 async with aiohttp.ClientSession(
                     timeout=aiohttp.ClientTimeout(total=30),
-                    headers={'User-Agent': 'IntelliNews/1.0 (+https://intellinews.com)'}
+                    headers={'User-Agent': 'RPNews/1.0 (+https://rpnews.com)'}
                 ) as session:
                     self.session = session
                     await self.collect_all_news()
@@ -502,7 +502,7 @@ class IntelliNewsEngine:
             ))
 
 # Initialize FastAPI application
-app = FastAPI(title="IntelliNews - Free News Intelligence Platform", version="1.0.0")
+app = FastAPI(title="RPNews - Free News Intelligence Platform", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -513,17 +513,17 @@ app.add_middleware(
 )
 
 # Initialize the news engine
-news_engine = IntelliNewsEngine()
+news_engine = RPNewsEngine()
 
 # Main dashboard
 @app.get("/", response_class=HTMLResponse)
 async def dashboard():
-    """Beautiful web dashboard for IntelliNews"""
+    """Beautiful web dashboard for RPNews"""
     return """
     <!DOCTYPE html>
     <html>
     <head>
-        <title>IntelliNews - Your AI-Powered Morning Briefing</title>
+        <title>RPNews - Your AI-Powered Morning Briefing</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
@@ -665,7 +665,7 @@ async def dashboard():
     <body>
         <div class="container">
             <div class="header">
-                <div class="logo">📰 IntelliNews</div>
+                <div class="logo">📰 RPNews</div>
                 <div class="tagline">Your AI-Powered Intelligence Platform</div>
                 <div class="stats">
                     <div class="stat">
@@ -680,4 +680,4 @@ async def dashboard():
                         <div class="stat-number">24/7</div>
                         <div class="stat-label">Auto Updates</div>
                     </div>
-                    <div class
+                    <div class="
