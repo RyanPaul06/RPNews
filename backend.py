@@ -81,28 +81,28 @@ class RPNewsAI:
         
         key_info = '. '.join(important_sentences[:2])
         
-        # Category-specific formatting with emojis and structure
+        # Category-specific formatting with clean structure
         category_config = {
             "ai": {
-                "icon": "🤖", 
-                "impact": "⚡ AI Innovation: Significant development in artificial intelligence ecosystem"
+                "prefix": "AI Development:", 
+                "impact": "Technology Impact: Significant advancement in artificial intelligence sector"
             },
             "finance": {
-                "icon": "💰", 
-                "impact": "📊 Market Impact: Important financial development with investment implications"
+                "prefix": "Market Update:", 
+                "impact": "Financial Impact: Important development affecting markets and investments"
             },
             "politics": {
-                "icon": "🏛️", 
-                "impact": "📈 Policy Impact: Political development with potential broader consequences"
+                "prefix": "Policy Update:", 
+                "impact": "Political Impact: Government development with broader implications"
             }
         }
         
         config = category_config.get(category, {
-            "icon": "📰", 
-            "impact": "📋 Update: Important development to monitor"
+            "prefix": "News Update:", 
+            "impact": "General Impact: Important development requiring attention"
         })
         
-        return f"{config['icon']} Key Point: {title} 📝 Details: {key_info} {config['impact']}"
+        return f"{config['prefix']} {title}. Details: {key_info}. {config['impact']}"
 
 class RPNewsEngine:
     """Core news intelligence engine for RPNews"""
@@ -476,261 +476,677 @@ async def startup_event():
     logger.info("🚀 FastAPI startup - starting background collection")
     news_engine.start_background_collection()
 
-# Main dashboard
+# Main professional news dashboard
 @app.get("/", response_class=HTMLResponse)
 async def dashboard():
-    """Beautiful web dashboard for RPNews"""
-    html_content = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>RPNews - Your AI-Powered Morning Briefing</title>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                min-height: 100vh; 
-                color: #333;
-            }
-            .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-            .header { 
-                background: rgba(255,255,255,0.95); 
-                padding: 40px; 
-                border-radius: 20px; 
-                margin-bottom: 30px; 
-                backdrop-filter: blur(20px); 
-                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                text-align: center;
-            }
-            .logo { 
-                font-size: 3.5em; 
-                font-weight: 800; 
-                background: linear-gradient(45deg, #667eea, #764ba2); 
-                -webkit-background-clip: text; 
-                -webkit-text-fill-color: transparent; 
-                margin-bottom: 10px;
-            }
-            .tagline { 
-                font-size: 1.3em; 
-                color: #666; 
-                margin-bottom: 20px; 
-            }
-            .stats { 
-                display: flex; 
-                justify-content: center; 
-                gap: 30px; 
-                flex-wrap: wrap;
-            }
-            .stat { 
-                text-align: center; 
-                padding: 15px 25px; 
-                background: rgba(102, 126, 234, 0.1); 
-                border-radius: 15px;
-            }
-            .stat-number { 
-                font-size: 2em; 
-                font-weight: bold; 
-                color: #667eea; 
-            }
-            .stat-label { 
-                font-size: 0.9em; 
-                color: #666; 
-                margin-top: 5px;
-            }
-            .grid { 
-                display: grid; 
-                grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); 
-                gap: 25px; 
-                margin-top: 25px;
-            }
-            .card { 
-                background: white; 
-                padding: 30px; 
-                border-radius: 15px; 
-                box-shadow: 0 5px 20px rgba(0,0,0,0.08); 
-                transition: transform 0.3s ease, box-shadow 0.3s ease;
-                border: 1px solid rgba(102, 126, 234, 0.1);
-            }
-            .card:hover { 
-                transform: translateY(-5px); 
-                box-shadow: 0 15px 40px rgba(0,0,0,0.15);
-            }
-            .card-icon { 
-                font-size: 2.5em; 
-                margin-bottom: 15px; 
-            }
-            .card-title { 
-                font-size: 1.4em; 
-                font-weight: 600; 
-                margin-bottom: 10px; 
-                color: #333;
-            }
-            .card-description { 
-                color: #666; 
-                margin-bottom: 20px; 
-                line-height: 1.6;
-            }
-            .button { 
-                background: linear-gradient(45deg, #667eea, #764ba2); 
-                color: white; 
-                padding: 15px 30px; 
-                border: none; 
-                border-radius: 10px; 
-                cursor: pointer; 
-                font-weight: 600; 
-                font-size: 1em; 
-                transition: all 0.3s ease; 
-                text-decoration: none; 
-                display: inline-block;
-                width: 100%;
-                text-align: center;
-            }
-            .button:hover { 
-                transform: translateY(-2px); 
-                box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-            }
-            .section { 
-                background: rgba(255,255,255,0.9); 
-                padding: 30px; 
-                border-radius: 20px; 
-                margin-bottom: 30px; 
-                backdrop-filter: blur(20px); 
-                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            }
-            .status { 
-                padding: 15px; 
-                border-radius: 10px; 
-                margin: 15px 0; 
-                font-weight: 500;
-            }
-            .success { 
-                background: linear-gradient(135deg, #d4edda, #c3e6cb); 
-                color: #155724; 
-                border: 1px solid #c3e6cb;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <div class="logo">📰 RPNews</div>
-                <div class="tagline">Your AI-Powered Intelligence Platform</div>
-                <div class="stats">
-                    <div class="stat">
-                        <div class="stat-number">60+</div>
-                        <div class="stat-label">Premium Sources</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-number">3</div>
-                        <div class="stat-label">Categories</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-number">24/7</div>
-                        <div class="stat-label">Auto Updates</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-number">$0</div>
-                        <div class="stat-label">Monthly Cost</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="grid">
-                <div class="card">
-                    <div class="card-icon">🌅</div>
-                    <div class="card-title">Morning Briefing</div>
-                    <div class="card-description">Your daily AI-summarized briefing from all categories. Start every day informed.</div>
-                    <a href="/api/morning-briefing" class="button">View Today's Briefing</a>
-                </div>
-                
-                <div class="card">
-                    <div class="card-icon">🤖</div>
-                    <div class="card-title">AI & Technology</div>
-                    <div class="card-description">Latest from The Batch (Andrew Ng), OpenAI, Anthropic, Google AI, and ArXiv research papers.</div>
-                    <a href="/api/articles/ai" class="button">Browse AI News</a>
-                </div>
-                
-                <div class="card">
-                    <div class="card-icon">💰</div>
-                    <div class="card-title">Finance & Markets</div>
-                    <div class="card-description">Bloomberg, WSJ, Federal Reserve, crypto markets, and global financial developments.</div>
-                    <a href="/api/articles/finance" class="button">Browse Finance News</a>
-                </div>
-                
-                <div class="card">
-                    <div class="card-icon">🏛️</div>
-                    <div class="card-title">Politics & Policy</div>
-                    <div class="card-description">Politico, Reuters, BBC, Washington Post, and international political coverage.</div>
-                    <a href="/api/articles/politics" class="button">Browse Politics News</a>
-                </div>
-            </div>
-            
-            <div class="section">
-                <h2 style="margin-bottom: 20px; color: #333;">📊 Platform Status</h2>
-                <div id="status">Loading platform status...</div>
-                <button class="button" onclick="triggerCollection()" style="margin-top: 20px; width: auto;">
-                    🔄 Collect Latest News
-                </button>
-            </div>
-        </div>
+    """Professional news intelligence dashboard"""
+    html_content = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPNews - Professional News Intelligence</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         
-        <script>
-            async function loadStatus() {
-                try {
-                    const response = await fetch('/api/stats');
-                    const stats = await response.json();
-                    const totalSources = stats.sources.ai + stats.sources.finance + stats.sources.politics;
-                    const totalToday = stats.ai_today + stats.finance_today + stats.politics_today;
-                    
-                    document.getElementById('status').innerHTML = `
-                        <div class="success status">
-                            ✅ <strong>RPNews is running smoothly!</strong><br>
-                            AI Engine: ${stats.ai_type} • Sources: ${totalSources} • Articles today: ${totalToday}
-                        </div>
-                    `;
-                } catch (error) {
-                    document.getElementById('status').innerHTML = `
-                        <div class="success status">
-                            ✅ <strong>RPNews is starting up...</strong><br>
-                            The platform is initializing. Please try again in a moment.
-                        </div>
-                    `;
-                }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 70px;
+        }
+        
+        .logo {
+            font-size: 1.8em;
+            font-weight: 800;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            gap: 0;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 12px;
+            padding: 4px;
+        }
+        
+        .nav-tab {
+            padding: 12px 24px;
+            border: none;
+            background: transparent;
+            color: #667eea;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95em;
+        }
+        
+        .nav-tab:hover {
+            background: rgba(102, 126, 234, 0.2);
+            color: #5a67d8;
+        }
+        
+        .nav-tab.active {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+        
+        .briefing-header {
+            text-align: center;
+            margin-bottom: 40px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .briefing-title {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .briefing-date {
+            color: #667eea;
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+        
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 10px 20px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 12px;
+        }
+        
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        
+        .category-section {
+            margin-bottom: 50px;
+        }
+        
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 20px 30px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+        
+        .category-icon {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 8px 12px;
+            border-radius: 8px;
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        .category-title {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        .category-count {
+            background: #667eea;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+        
+        .articles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+        }
+        
+        .article-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            position: relative;
+        }
+        
+        .article-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .article-header {
+            padding: 20px 25px 15px;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        
+        .article-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        
+        .article-source {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 0.9em;
+        }
+        
+        .article-time {
+            color: #95a5a6;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .time-icon {
+            width: 12px;
+            height: 12px;
+            border: 1px solid #95a5a6;
+            border-radius: 50%;
+            position: relative;
+        }
+        
+        .time-icon::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 5px;
+            width: 1px;
+            height: 4px;
+            background: #95a5a6;
+        }
+        
+        .priority-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .priority-high {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .priority-medium {
+            background: #feca57;
+            color: white;
+        }
+        
+        .priority-low {
+            background: #48dbfb;
+            color: white;
+        }
+        
+        .article-title {
+            font-size: 1.25em;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1.4;
+            margin-bottom: 15px;
+        }
+        
+        .article-title a {
+            color: inherit;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .article-title a:hover {
+            color: #667eea;
+        }
+        
+        .article-content {
+            padding: 0 25px 20px;
+        }
+        
+        .article-summary {
+            background: linear-gradient(135deg, #f8f9ff, #f0f4ff);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        
+        .article-excerpt {
+            color: #5d6d7e;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .article-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .tag {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+        
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+            color: #bdc3c7;
+            font-weight: 300;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                height: auto;
+                padding: 15px 20px;
+                gap: 15px;
             }
             
-            async function triggerCollection() {
-                document.getElementById('status').innerHTML = `
-                    <div class="success status">
-                        🔄 <strong>Collecting latest news...</strong><br>
-                        This may take a few minutes as we gather articles from 60+ sources.
+            .nav-tabs {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .nav-tab {
+                flex: 1;
+                text-align: center;
+                padding: 10px 16px;
+                font-size: 0.9em;
+            }
+            
+            .briefing-title {
+                font-size: 2em;
+            }
+            
+            .articles-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-bar {
+                gap: 15px;
+            }
+            
+            .category-header {
+                padding: 15px 20px;
+            }
+            
+            .article-card {
+                margin-bottom: 20px;
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="nav-container">
+            <div class="logo">RPNews</div>
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-view="briefing">Morning Briefing</button>
+                <button class="nav-tab" data-view="ai">AI & Technology</button>
+                <button class="nav-tab" data-view="finance">Finance & Markets</button>
+                <button class="nav-tab" data-view="politics">Politics & Policy</button>
+            </div>
+            <button class="refresh-btn" onclick="refreshNews()">
+                <span id="refresh-icon">↻</span> Refresh
+            </button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <h3>Loading your news intelligence...</h3>
+            <p>Gathering the latest updates from 60+ premium sources</p>
+        </div>
+
+        <div id="content" style="display: none;">
+            <div class="briefing-header">
+                <h1 class="briefing-title">Your Daily Intelligence Briefing</h1>
+                <p class="briefing-date" id="briefing-date"></p>
+                <div class="stats-bar" id="stats-bar"></div>
+            </div>
+
+            <div id="news-content"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentData = null;
+        let currentView = 'briefing';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadBriefing();
+            setupNavigation();
+        });
+
+        function setupNavigation() {
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Update active tab
+                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Switch view
+                    currentView = this.dataset.view;
+                    if (currentData) {
+                        displayContent();
+                    }
+                });
+            });
+        }
+
+        async function loadBriefing() {
+            try {
+                showLoading();
+                const response = await fetch('/api/morning-briefing');
+                currentData = await response.json();
+                displayContent();
+            } catch (error) {
+                console.error('Error loading briefing:', error);
+                showError();
+            }
+        }
+
+        async function refreshNews() {
+            const refreshIcon = document.getElementById('refresh-icon');
+            refreshIcon.style.animation = 'spin 1s linear infinite';
+            
+            try {
+                // Trigger collection
+                await fetch('/api/collect', { method: 'POST' });
+                
+                // Wait a moment then reload
+                setTimeout(async () => {
+                    await loadBriefing();
+                    refreshIcon.style.animation = 'none';
+                }, 3000);
+            } catch (error) {
+                console.error('Error refreshing:', error);
+                refreshIcon.style.animation = 'none';
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('content').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+        }
+
+        function showError() {
+            hideLoading();
+            document.getElementById('news-content').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">!</div>
+                    <h3>Unable to load news</h3>
+                    <p>Please try refreshing or check back in a few minutes.</p>
+                </div>
+            `;
+        }
+
+        function displayContent() {
+            hideLoading();
+            
+            if (!currentData || !currentData.briefing) {
+                showError();
+                return;
+            }
+
+            // Update header
+            document.getElementById('briefing-date').textContent = currentData.date;
+            
+            // Update stats
+            const statsBar = document.getElementById('stats-bar');
+            if (currentView === 'briefing') {
+                const totalArticles = currentData.total_articles || 0;
+                const aiCount = currentData.briefing.ai?.length || 0;
+                const financeCount = currentData.briefing.finance?.length || 0;
+                const politicsCount = currentData.briefing.politics?.length || 0;
+                
+                statsBar.innerHTML = `
+                    <div class="stat-item">
+                        <div class="stat-number">${totalArticles}</div>
+                        <div class="stat-label">Total Articles</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${aiCount}</div>
+                        <div class="stat-label">AI & Tech</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${financeCount}</div>
+                        <div class="stat-label">Finance</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${politicsCount}</div>
+                        <div class="stat-label">Politics</div>
                     </div>
                 `;
-                
-                try {
-                    await fetch('/api/collect', { method: 'POST' });
-                    setTimeout(() => {
-                        loadStatus();
-                    }, 5000);
-                } catch (error) {
-                    document.getElementById('status').innerHTML = `
-                        <div class="success status">
-                            ⚠️ <strong>Collection in progress...</strong><br>
-                            Background collection is running. Check back in a few minutes.
+            } else {
+                const categoryData = currentData.briefing[currentView] || [];
+                statsBar.innerHTML = `
+                    <div class="stat-item">
+                        <div class="stat-number">${categoryData.length}</div>
+                        <div class="stat-label">Articles Found</div>
+                    </div>
+                `;
+            }
+
+            // Display articles
+            const contentDiv = document.getElementById('news-content');
+            contentDiv.className = 'fade-in';
+            
+            if (currentView === 'briefing') {
+                contentDiv.innerHTML = displayAllCategories();
+            } else {
+                contentDiv.innerHTML = displaySingleCategory(currentView);
+            }
+        }
+
+        function displayAllCategories() {
+            let html = '';
+            
+            const categories = [
+                { key: 'ai', title: 'AI & Technology', icon: 'AI' },
+                { key: 'finance', title: 'Finance & Markets', icon: 'FIN' },
+                { key: 'politics', title: 'Politics & Policy', icon: 'POL' }
+            ];
+
+            categories.forEach(category => {
+                const articles = currentData.briefing[category.key] || [];
+                if (articles.length > 0) {
+                    html += `
+                        <div class="category-section">
+                            <div class="category-header">
+                                <span class="category-icon">${category.icon}</span>
+                                <h2 class="category-title">${category.title}</h2>
+                                <span class="category-count">${articles.length} articles</span>
+                            </div>
+                            <div class="articles-grid">
+                                ${articles.map(article => createArticleCard(article)).join('')}
+                            </div>
                         </div>
                     `;
                 }
-            }
+            });
+
+            return html || '<div class="empty-state"><div class="empty-state-icon">∅</div><h3>No articles available</h3><p>Try refreshing to collect the latest news.</p></div>';
+        }
+
+        function displaySingleCategory(categoryKey) {
+            const articles = currentData.briefing[categoryKey] || [];
             
-            // Load status on page load
-            loadStatus();
-            setInterval(loadStatus, 30000);
-        </script>
-    </body>
-    </html>
-    """
+            if (articles.length === 0) {
+                return '<div class="empty-state"><div class="empty-state-icon">∅</div><h3>No articles available</h3><p>Try refreshing to collect the latest news.</p></div>';
+            }
+
+            return `
+                <div class="articles-grid">
+                    ${articles.map(article => createArticleCard(article)).join('')}
+                </div>
+            `;
+        }
+
+        function createArticleCard(article) {
+            const tags = article.tags || [];
+            const tagsHtml = tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+            
+            return `
+                <article class="article-card">
+                    <div class="priority-badge priority-${article.priority || 'medium'}">${article.priority || 'medium'}</div>
+                    <div class="article-header">
+                        <div class="article-meta">
+                            <span class="article-source">${article.source}</span>
+                            <span class="article-time"><span class="time-icon"></span> ${article.timeAgo}</span>
+                        </div>
+                        <h3 class="article-title">
+                            <a href="${article.url}" target="_blank" rel="noopener noreferrer">
+                                ${article.title}
+                            </a>
+                        </h3>
+                    </div>
+                    <div class="article-content">
+                        ${article.aiSummary ? `<div class="article-summary">${article.aiSummary}</div>` : ''}
+                        <p class="article-excerpt">${article.excerpt}</p>
+                        ${tagsHtml ? `<div class="article-tags">${tagsHtml}</div>` : ''}
+                    </div>
+                </article>
+            `;
+        }
+    </script>
+</body>
+</html>"""
     return html_content
 
 # API Endpoints
