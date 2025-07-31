@@ -26,13 +26,6 @@ import uvicorn
 PORT = int(os.environ.get("PORT", 8000))
 DATABASE_URL = os.environ.get("DATABASE_URL", "rpnews.db")
 
-# AI Summarization setup
-try:
-    from transformers import pipeline
-    TRANSFORMERS_AVAILABLE = True
-except ImportError:
-    TRANSFORMERS_AVAILABLE = False
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -53,58 +46,15 @@ class NewsArticle:
     extracted_at: datetime
 
 class RPNewsAI:
-    """AI-powered news summarization for RPNews"""
+    """Smart rule-based news summarization for RPNews"""
     
     def __init__(self):
-        self.summarizer = None
-        self.setup_ai()
-    
-    def setup_ai(self):
-        """Initialize AI summarization"""
-        if TRANSFORMERS_AVAILABLE:
-            try:
-                self.summarizer = pipeline(
-                    "summarization", 
-                    model="facebook/bart-large-cnn",
-                    device=-1,  # CPU only for cloud deployment
-                    framework="pt"
-                )
-                self.ai_type = "transformers"
-                logger.info("✅ Using AI Transformers for summarization")
-                return
-            except Exception as e:
-                logger.warning(f"⚠️ Transformers failed: {str(e)}")
-        
         self.ai_type = "enhanced_rules"
         logger.info("📝 Using enhanced rule-based analysis")
     
     def generate_summary(self, title: str, content: str, category: str) -> str:
-        """Generate intelligent summary"""
-        if self.ai_type == "transformers":
-            return self._ai_summary(title, content, category)
-        else:
-            return self._smart_rule_summary(title, content, category)
-    
-    def _ai_summary(self, title: str, content: str, category: str) -> str:
-        """AI-powered summarization"""
-        try:
-            text = f"{title}. {content}"[:1024]
-            summary = self.summarizer(text, max_length=120, min_length=30, do_sample=False)
-            base_summary = summary[0]['summary_text']
-            
-            # Category-specific formatting
-            if category == "ai":
-                return f"🤖 Key Point: {base_summary} ⚡ Impact: Major AI development with significant implications."
-            elif category == "finance":
-                return f"💰 Key Point: {base_summary} 📊 Impact: Important market development for investors."
-            elif category == "politics":
-                return f"🏛️ Key Point: {base_summary} 📈 Impact: Policy development with broader implications."
-            
-            return f"📰 Key Point: {base_summary}"
-            
-        except Exception as e:
-            logger.error(f"AI summarization failed: {str(e)}")
-            return self._smart_rule_summary(title, content, category)
+        """Generate intelligent summary using enhanced rules"""
+        return self._smart_rule_summary(title, content, category)
     
     def _smart_rule_summary(self, title: str, content: str, category: str) -> str:
         """Enhanced rule-based summary with intelligent parsing"""
@@ -519,7 +469,7 @@ news_engine = RPNewsEngine()
 @app.get("/", response_class=HTMLResponse)
 async def dashboard():
     """Beautiful web dashboard for RPNews"""
-    return """
+    html_content = """
     <!DOCTYPE html>
     <html>
     <head>
@@ -650,16 +600,6 @@ async def dashboard():
                 color: #155724; 
                 border: 1px solid #c3e6cb;
             }
-            .warning { 
-                background: linear-gradient(135deg, #fff3cd, #ffeaa7); 
-                color: #856404; 
-                border: 1px solid #ffeaa7;
-            }
-            .info { 
-                background: linear-gradient(135deg, #d1ecf1, #bee5eb); 
-                color: #0c5460; 
-                border: 1px solid #bee5eb;
-            }
         </style>
     </head>
     <body>
@@ -680,4 +620,351 @@ async def dashboard():
                         <div class="stat-number">24/7</div>
                         <div class="stat-label">Auto Updates</div>
                     </div>
-                    <div class="
+                    <div class="stat">
+                        <div class="stat-number">$0</div>
+                        <div class="stat-label">Monthly Cost</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid">
+                <div class="card">
+                    <div class="card-icon">🌅</div>
+                    <div class="card-title">Morning Briefing</div>
+                    <div class="card-description">Your daily AI-summarized briefing from all categories. Start every day informed.</div>
+                    <a href="/api/morning-briefing" class="button">View Today's Briefing</a>
+                </div>
+                
+                <div class="card">
+                    <div class="card-icon">🤖</div>
+                    <div class="card-title">AI & Technology</div>
+                    <div class="card-description">Latest from The Batch (Andrew Ng), OpenAI, Anthropic, Google AI, and ArXiv research papers.</div>
+                    <a href="/api/articles/ai" class="button">Browse AI News</a>
+                </div>
+                
+                <div class="card">
+                    <div class="card-icon">💰</div>
+                    <div class="card-title">Finance & Markets</div>
+                    <div class="card-description">Bloomberg, WSJ, Federal Reserve, crypto markets, and global financial developments.</div>
+                    <a href="/api/articles/finance" class="button">Browse Finance News</a>
+                </div>
+                
+                <div class="card">
+                    <div class="card-icon">🏛️</div>
+                    <div class="card-title">Politics & Policy</div>
+                    <div class="card-description">Politico, Reuters, BBC, Washington Post, and international political coverage.</div>
+                    <a href="/api/articles/politics" class="button">Browse Politics News</a>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2 style="margin-bottom: 20px; color: #333;">📊 Platform Status</h2>
+                <div id="status">Loading platform status...</div>
+                <button class="button" onclick="triggerCollection()" style="margin-top: 20px; width: auto;">
+                    🔄 Collect Latest News
+                </button>
+            </div>
+        </div>
+        
+        <script>
+            async function loadStatus() {
+                try {
+                    const response = await fetch('/api/stats');
+                    const stats = await response.json();
+                    const totalSources = stats.sources.ai + stats.sources.finance + stats.sources.politics;
+                    const totalToday = stats.ai_today + stats.finance_today + stats.politics_today;
+                    
+                    document.getElementById('status').innerHTML = `
+                        <div class="success status">
+                            ✅ <strong>RPNews is running smoothly!</strong><br>
+                            AI Engine: ${stats.ai_type} • Sources: ${totalSources} • Articles today: ${totalToday}
+                        </div>
+                    `;
+                } catch (error) {
+                    document.getElementById('status').innerHTML = `
+                        <div class="success status">
+                            ✅ <strong>RPNews is starting up...</strong><br>
+                            The platform is initializing. Please try again in a moment.
+                        </div>
+                    `;
+                }
+            }
+            
+            async function triggerCollection() {
+                document.getElementById('status').innerHTML = `
+                    <div class="success status">
+                        🔄 <strong>Collecting latest news...</strong><br>
+                        This may take a few minutes as we gather articles from 60+ sources.
+                    </div>
+                `;
+                
+                try {
+                    await fetch('/api/collect', { method: 'POST' });
+                    setTimeout(() => {
+                        loadStatus();
+                    }, 5000);
+                } catch (error) {
+                    document.getElementById('status').innerHTML = `
+                        <div class="success status">
+                            ⚠️ <strong>Collection in progress...</strong><br>
+                            Background collection is running. Check back in a few minutes.
+                        </div>
+                    `;
+                }
+            }
+            
+            // Load status on page load
+            loadStatus();
+            setInterval(loadStatus, 30000);
+        </script>
+    </body>
+    </html>
+    """
+    return html_content
+
+# API Endpoints
+@app.get("/api/morning-briefing")
+async def get_morning_briefing():
+    """Generate comprehensive morning briefing"""
+    try:
+        with sqlite3.connect(news_engine.db_path) as conn:
+            briefing = {}
+            
+            for category in ['ai', 'finance', 'politics']:
+                cursor = conn.execute("""
+                    SELECT id, title, url, source, author, published_date, excerpt,
+                           ai_summary, priority, tags
+                    FROM articles 
+                    WHERE category = ? AND published_date >= datetime('now', '-24 hours')
+                    ORDER BY 
+                        CASE priority 
+                            WHEN 'high' THEN 3 
+                            WHEN 'medium' THEN 2 
+                            ELSE 1 
+                        END DESC,
+                        published_date DESC
+                    LIMIT 10
+                """, (category,))
+                
+                articles = []
+                for row in cursor.fetchall():
+                    # Calculate time ago
+                    try:
+                        pub_date = datetime.fromisoformat(row[5])
+                        hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
+                        time_str = f"{hours_ago}h ago" if hours_ago < 24 else f"{hours_ago//24}d ago"
+                    except:
+                        time_str = "Recently"
+                    
+                    articles.append({
+                        'id': row[0],
+                        'title': row[1],
+                        'url': row[2],
+                        'source': row[3],
+                        'author': row[4] or 'Unknown',
+                        'publishedDate': row[5],
+                        'excerpt': row[6],
+                        'aiSummary': row[7],
+                        'priority': row[8],
+                        'tags': json.loads(row[9] or '[]'),
+                        'category': category,
+                        'timeAgo': time_str
+                    })
+                
+                briefing[category] = articles
+            
+            return {
+                'platform': 'RPNews',
+                'date': datetime.now().strftime('%B %d, %Y'),
+                'briefing': briefing,
+                'generated_at': datetime.now().isoformat(),
+                'total_articles': sum(len(articles) for articles in briefing.values()),
+                'message': 'Your AI-powered morning briefing is ready!'
+            }
+            
+    except Exception as e:
+        logger.error(f"Error generating briefing: {str(e)}")
+        return {
+            'platform': 'RPNews',
+            'date': datetime.now().strftime('%B %d, %Y'),
+            'briefing': {'ai': [], 'finance': [], 'politics': []},
+            'error': 'Briefing generation failed - this may be the first run',
+            'generated_at': datetime.now().isoformat(),
+            'suggestion': 'Try clicking "Collect Latest News" on the main dashboard'
+        }
+
+@app.get("/api/articles/{category}")
+async def get_articles(category: str, limit: int = 50, priority: str = "all"):
+    """Get articles for a specific category"""
+    if category not in ['ai', 'finance', 'politics']:
+        raise HTTPException(status_code=400, detail="Category must be ai, finance, or politics")
+    
+    try:
+        with sqlite3.connect(news_engine.db_path) as conn:
+            query = """
+                SELECT id, title, url, source, author, published_date, excerpt,
+                       ai_summary, priority, tags
+                FROM articles 
+                WHERE category = ?
+            """
+            params = [category]
+            
+            if priority != "all":
+                query += " AND priority = ?"
+                params.append(priority)
+            
+            query += " ORDER BY published_date DESC LIMIT ?"
+            params.append(limit)
+            
+            cursor = conn.execute(query, params)
+            
+            articles = []
+            for row in cursor.fetchall():
+                # Calculate time ago
+                try:
+                    pub_date = datetime.fromisoformat(row[5])
+                    hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
+                    time_str = f"{hours_ago}h ago" if hours_ago < 24 else f"{hours_ago//24}d ago"
+                except:
+                    time_str = "Recently"
+                
+                articles.append({
+                    'id': row[0],
+                    'title': row[1],
+                    'url': row[2],
+                    'source': row[3],
+                    'author': row[4] or 'Unknown',
+                    'publishedDate': row[5],
+                    'excerpt': row[6],
+                    'aiSummary': row[7],
+                    'priority': row[8],
+                    'tags': json.loads(row[9] or '[]'),
+                    'category': category,
+                    'timeAgo': time_str
+                })
+            
+            category_names = {
+                'ai': 'AI & Technology',
+                'finance': 'Finance & Markets', 
+                'politics': 'Politics & Policy'
+            }
+            
+            return {
+                'category': category,
+                'category_name': category_names[category],
+                'articles': articles,
+                'count': len(articles),
+                'generated_at': datetime.now().isoformat()
+            }
+            
+    except Exception as e:
+        logger.error(f"Error getting {category} articles: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get {category} articles")
+
+@app.get("/api/stats")
+async def get_stats():
+    """Platform statistics and health metrics"""
+    try:
+        with sqlite3.connect(news_engine.db_path) as conn:
+            stats = {}
+            
+            for category in ['ai', 'finance', 'politics']:
+                # Total articles
+                cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE category = ?", (category,))
+                stats[f'{category}_total'] = cursor.fetchone()[0]
+                
+                # Today's articles
+                cursor = conn.execute("""
+                    SELECT COUNT(*) FROM articles 
+                    WHERE category = ? AND published_date >= date('now')
+                """, (category,))
+                stats[f'{category}_today'] = cursor.fetchone()[0]
+            
+            # Source counts
+            stats['sources'] = {
+                'ai': len(news_engine.sources['ai']),
+                'finance': len(news_engine.sources['finance']),
+                'politics': len(news_engine.sources['politics'])
+            }
+            
+            # AI type
+            stats['ai_type'] = news_engine.ai.ai_type
+            
+            return stats
+            
+    except Exception as e:
+        logger.error(f"Error getting stats: {str(e)}")
+        return {
+            'error': 'Stats temporarily unavailable',
+            'ai_type': 'enhanced_rules',
+            'sources': {
+                'ai': len(news_engine.sources['ai']),
+                'finance': len(news_engine.sources['finance']),
+                'politics': len(news_engine.sources['politics'])
+            },
+            'ai_today': 0,
+            'finance_today': 0,
+            'politics_today': 0
+        }
+
+@app.post("/api/collect")
+async def trigger_collection(background_tasks: BackgroundTasks):
+    """Manually trigger news collection"""
+    
+    async def run_collection():
+        try:
+            logger.info("Manual collection triggered")
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=30),
+                headers={'User-Agent': 'RPNews/1.0'}
+            ) as session:
+                news_engine.session = session
+                total_collected = await news_engine.collect_all_news()
+                news_engine.session = None
+                logger.info(f"Manual collection completed: {total_collected} articles")
+        except Exception as e:
+            logger.error(f"Manual collection error: {str(e)}")
+    
+    background_tasks.add_task(run_collection)
+    
+    return {
+        'message': 'News collection started',
+        'timestamp': datetime.now().isoformat(),
+        'status': 'Background collection initiated',
+        'note': 'Articles will appear in a few minutes'
+    }
+
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint for deployment platforms"""
+    try:
+        # Test database connectivity
+        with sqlite3.connect(news_engine.db_path) as conn:
+            cursor = conn.execute("SELECT COUNT(*) FROM articles")
+            article_count = cursor.fetchone()[0]
+        
+        return {
+            'status': 'healthy',
+            'platform': 'RPNews',
+            'timestamp': datetime.now().isoformat(),
+            'ai_type': news_engine.ai.ai_type,
+            'article_count': article_count,
+            'sources_count': sum(len(sources) for sources in news_engine.sources.values()),
+            'database': 'connected'
+        }
+    except Exception as e:
+        return {
+            'status': 'unhealthy',
+            'platform': 'RPNews', 
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }
+
+if __name__ == "__main__":
+    logger.info("🚀 Starting RPNews Platform")
+    logger.info(f"🌐 Port: {PORT}")
+    logger.info(f"🤖 AI Engine: enhanced_rules")
+    logger.info(f"📊 Total Sources: {sum(len(sources) for sources in news_engine.sources.values())}")
+    logger.info("📰 Features: Morning briefings, smart summaries, 24/7 collection")
+    
+    uvicorn.run(app, host="0.0.0.0", port=PORT)
