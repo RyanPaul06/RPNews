@@ -29,7 +29,7 @@ venv.bak/
 .DS_Store
 *.db
 *.sqlite3
-intellinews.db
+rpnews.db
 node_modules/
 .next/
 out/
