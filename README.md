@@ -1,20 +1,17 @@
-# 📰 IntelliNews - Free AI-Powered News Intelligence Platform
+# 📰 RPNews - Your AI-Powered News Intelligence Platform
 
 ## 🚀 Deploy to Railway (Free)
 
-### One-Click Deploy:
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template)
-
-### Manual Deploy:
+### Quick Deploy:
 1. **Fork this repository to your GitHub**
 2. **Connect to Railway:**
    - Go to [Railway.app](https://railway.app) 
    - Sign up with GitHub (free)
    - Click "New Project" → "Deploy from GitHub repo"
-   - Select your forked repository
+   - Select your **RPNews** repository
    - Railway automatically deploys!
 
-3. **Your platform will be live at:** `https://yourproject.railway.app/`
+3. **Your platform will be live at:** `https://rpnews.railway.app/`
 
 ## ✨ What You Get (100% Free)
 
@@ -38,11 +35,11 @@
 ## 🔗 **Usage**
 
 ### **Core URLs:**
-- **🏠 Dashboard:** `https://yourproject.railway.app/`
-- **📰 Morning Briefing:** `https://yourproject.railway.app/api/morning-briefing`
-- **🤖 AI News:** `https://yourproject.railway.app/api/articles/ai`
-- **💰 Finance News:** `https://yourproject.railway.app/api/articles/finance`
-- **🏛️ Politics News:** `https://yourproject.railway.app/api/articles/politics`
+- **🏠 Dashboard:** `https://rpnews.railway.app/`
+- **📰 Morning Briefing:** `https://rpnews.railway.app/api/morning-briefing`
+- **🤖 AI News:** `https://rpnews.railway.app/api/articles/ai`
+- **💰 Finance News:** `https://rpnews.railway.app/api/articles/finance`
+- **🏛️ Politics News:** `https://rpnews.railway.app/api/articles/politics`
 
 ### **API Endpoints:**
 - `GET /api/morning-briefing` - Your daily AI briefing
@@ -87,7 +84,7 @@
 - **Health monitoring:** Built-in status checks
 - **Auto-restart:** Automatic recovery from failures
 
-## 🎯 **Why Choose IntelliNews?**
+## 🎯 **Why Choose RPNews?**
 
 ### **vs. Expensive News Services ($50-200/month):**
 ✅ **$0/month forever** - No hidden costs or limits  
@@ -106,10 +103,19 @@
 ## 📋 **Deployment Checklist**
 
 - [ ] Fork this repository to your GitHub
+- [ ] Ensure repository is **Public** (not Private)
+- [ ] Upload all 7 files to your repository:
+  - [ ] `backend.py` (main server)
+  - [ ] `requirements.txt` (dependencies)
+  - [ ] `railway.toml` (Railway config)
+  - [ ] `Procfile` (start command)
+  - [ ] `runtime.txt` (Python version)
+  - [ ] `.gitignore` (ignore rules)
+  - [ ] `README.md` (this file)
 - [ ] Sign up for Railway.app (free)
 - [ ] Connect GitHub repo to Railway
 - [ ] Wait for automatic deployment (2-3 minutes)
-- [ ] Visit your live platform URL
+- [ ] Visit your live platform: `https://rpnews.railway.app/`
 - [ ] Click "Collect Latest News" to populate database
 - [ ] Bookmark your morning briefing URL
 - [ ] Set up daily routine: Check briefing each morning
@@ -120,7 +126,7 @@
 Edit the `_initialize_sources()` method in `backend.py` to add RSS feeds from additional publications.
 
 ### **Modify AI Summaries:**
-Adjust the summary generation in the `IntelliNewsAI` class to change formatting, length, or focus areas.
+Adjust the summary generation in the `RPNewsAI` class to change formatting, length, or focus areas.
 
 ### **Change Collection Frequency:**
 Modify the `background_collection()` method to collect more or less frequently than hourly.
@@ -128,14 +134,24 @@ Modify the `background_collection()` method to collect more or less frequently t
 ### **Custom Categories:**
 Add new categories beyond AI, finance, and politics by extending the source dictionary and database schema.
 
-## 🎉 **Ready to Launch?**
+## 🎉 **Ready to Launch RPNews?**
 
-1. **Fork this repo** to your GitHub account
+1. **Upload all 7 files** to your GitHub repository
 2. **Deploy to Railway** in under 3 minutes  
 3. **Start your morning routine** with AI-powered intelligence
 
-**Tomorrow morning, you'll have a comprehensive briefing waiting for you with the latest developments in AI, finance, and politics - all powered by your own free platform!**
+**Tomorrow morning, you'll have your comprehensive RPNews briefing waiting for you with the latest developments in AI, finance, and politics - all powered by your own free platform!**
 
 ---
 
-*Built with ❤️ for informed decision-making*
+*RPNews - Built with ❤️ for informed decision-making*
+
+## 🆘 **Need Help?**
+
+If Railway deployment fails:
+1. **Check all 7 files are uploaded**
+2. **Ensure repository is Public**
+3. **Try Render.com as alternative**
+4. **Check Railway deployment logs for specific errors**
+
+Your RPNews platform will be accessible at: `https://rpnews.railway.app/`
