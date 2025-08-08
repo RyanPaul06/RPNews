@@ -4,6 +4,3 @@ aiohttp==3.10.11
 feedparser==6.0.11
 beautifulsoup4==4.12.3
 python-multipart==0.0.12
-transformers==4.46.0
-torch==2.5.0
-tokenizers==0.20.0
