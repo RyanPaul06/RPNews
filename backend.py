@@ -1,4 +1,1315 @@
-"""
+# Enhanced professional news dashboard with React-inspired UI
+@app.get("/", response_class=HTMLResponse)
+async def dashboard():
+    """Modern React-inspired dashboard with beautiful UI"""
+    html_content = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPNews - AI-Powered News Intelligence Platform</title>
+    <meta name="description" content="RPNews is an AI-powered news intelligence platform that aggregates, analyzes, and summarizes news from 60+ premium sources across AI, finance, and politics.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --rp-primary: #3b82f6;
+            --rp-secondary: #6366f1;
+            --rp-success: #10b981;
+            --rp-warning: #f59e0b;
+            --rp-error: #ef4444;
+            --rp-text: #1f2937;
+            --rp-text-secondary: #6b7280;
+            --rp-bg: #f8fafc;
+            --rp-border: #e5e7eb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--rp-bg);
+            color: var(--rp-text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Navigation */
+        .top-nav {
+            background: white;
+            border-bottom: 1px solid var(--rp-border);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 4rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-icon {
+            width: 2rem;
+            height: 2rem;
+            background: var(--rp-primary);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .brand-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--rp-text);
+        }
+
+        .brand-badge {
+            font-size: 0.75rem;
+            background: var(--rp-secondary);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-weight: 500;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .search-bar {
+            position: relative;
+            width: 20rem;
+            max-width: 100%;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+            border: 1px solid var(--rp-border);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--rp-primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--rp-text-secondary);
+        }
+
+        .nav-btn {
+            position: relative;
+            padding: 0.5rem;
+            color: var(--rp-text-secondary);
+            border: none;
+            background: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            color: var(--rp-primary);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -0.25rem;
+            right: -0.25rem;
+            width: 1rem;
+            height: 1rem;
+            background: var(--rp-error);
+            color: white;
+            font-size: 0.75rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Main Layout */
+        .main-layout {
+            display: flex;
+            min-height: calc(100vh - 4rem);
+        }
+
+        .sidebar {
+            width: 16rem;
+            background: white;
+            border-right: 1px solid var(--rp-border);
+            padding: 1.5rem;
+            position: sticky;
+            top: 4rem;
+            height: calc(100vh - 4rem);
+            overflow-y: auto;
+        }
+
+        .sidebar-section {
+            margin-bottom: 2rem;
+        }
+
+        .sidebar-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--rp-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+        }
+
+        .sidebar-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--rp-text);
+        }
+
+        .stat-value {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--rp-primary);
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            color: var(--rp-text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        .nav-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--rp-text);
+        }
+
+        .nav-item.active {
+            background: var(--rp-primary);
+            color: white;
+        }
+
+        .nav-item i {
+            margin-right: 0.75rem;
+            width: 1rem;
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            font-size: 0.75rem;
+            background: var(--rp-border);
+            color: var(--rp-text);
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+        }
+
+        .collect-btn {
+            width: 100%;
+            background: var(--rp-primary);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 1rem;
+        }
+
+        .collect-btn:hover {
+            background: #2563eb;
+        }
+
+        .collect-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Content Area */
+        .content {
+            flex: 1;
+            padding: 1.5rem;
+            max-width: calc(100vw - 16rem);
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--rp-text);
+            margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+            font-size: 1.125rem;
+            color: var(--rp-text-secondary);
+        }
+
+        /* AI Overview Card */
+        .ai-overview {
+            background: linear-gradient(135deg, var(--rp-primary), var(--rp-secondary));
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .ai-overview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .ai-overview-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .ai-overview-icon {
+            width: 4rem;
+            height: 4rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .ai-overview-text {
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .ai-overview-footer {
+            display: flex;
+            align-items: center;
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Priority Alerts */
+        .priority-alerts {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--rp-text);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alerts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1rem;
+        }
+
+        .alert-card {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            border-left: 4px solid;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .alert-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .alert-card.ai { border-left-color: var(--rp-primary); }
+        .alert-card.finance { border-left-color: var(--rp-success); }
+        .alert-card.politics { border-left-color: var(--rp-secondary); }
+
+        .alert-header {
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            margin-bottom: 0.75rem;
+        }
+
+        .alert-category {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            gap: 0.25rem;
+        }
+
+        .alert-category.ai { background: rgba(59, 130, 246, 0.1); color: var(--rp-primary); }
+        .alert-category.finance { background: rgba(16, 185, 129, 0.1); color: var(--rp-success); }
+        .alert-category.politics { background: rgba(99, 102, 241, 0.1); color: var(--rp-secondary); }
+
+        .alert-time {
+            font-size: 0.75rem;
+            color: var(--rp-text-secondary);
+            margin-left: auto;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            color: var(--rp-text);
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .alert-summary {
+            font-size: 0.875rem;
+            color: var(--rp-text-secondary);
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+        }
+
+        .alert-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .alert-source {
+            font-size: 0.75rem;
+            color: var(--rp-text-secondary);
+        }
+
+        .alert-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .alert-action {
+            font-size: 0.75rem;
+            color: var(--rp-primary);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .alert-action:hover {
+            text-decoration: underline;
+        }
+
+        /* Category Sections */
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .category-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .category-title-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .category-icon {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .category-icon.ai { background: rgba(59, 130, 246, 0.1); color: var(--rp-primary); }
+        .category-icon.finance { background: rgba(16, 185, 129, 0.1); color: var(--rp-success); }
+        .category-icon.politics { background: rgba(99, 102, 241, 0.1); color: var(--rp-secondary); }
+
+        .category-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--rp-text);
+        }
+
+        .category-count {
+            font-size: 0.875rem;
+            color: var(--rp-text-secondary);
+        }
+
+        .category-articles {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .article-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--rp-border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .article-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .article-item:hover {
+            background: rgba(59, 130, 246, 0.02);
+            margin: 0 -0.5rem;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+        }
+
+        .priority-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            margin-top: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .priority-dot.high { background: var(--rp-error); }
+        .priority-dot.medium { background: var(--rp-warning); }
+        .priority-dot.low { background: var(--rp-text-secondary); }
+
+        .article-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .article-title {
+            font-weight: 500;
+            color: var(--rp-text);
+            font-size: 0.875rem;
+            line-height: 1.4;
+            margin-bottom: 0.25rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .article-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--rp-text-secondary);
+        }
+
+        .view-all-btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--rp-border);
+            background: white;
+            color: var(--rp-text);
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-all-btn:hover {
+            background: var(--rp-bg);
+            border-color: var(--rp-primary);
+            color: var(--rp-primary);
+        }
+
+        /* Analytics */
+        .analytics-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .analytics-stat {
+            text-align: center;
+        }
+
+        .analytics-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--rp-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .analytics-label {
+            font-size: 0.875rem;
+            color: var(--rp-text-secondary);
+        }
+
+        .analytics-trend {
+            background: var(--rp-bg);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .trend-chart {
+            display: flex;
+            align-items: end;
+            justify-content: center;
+            gap: 0.25rem;
+            height: 4rem;
+        }
+
+        .trend-bar {
+            width: 1rem;
+            background: var(--rp-primary);
+            border-radius: 0.125rem;
+            opacity: 0.8;
+            transition: all 0.2s;
+        }
+
+        .trend-bar:hover {
+            opacity: 1;
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: var(--rp-text-secondary);
+        }
+
+        .loading-spinner {
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid var(--rp-border);
+            border-top: 2px solid var(--rp-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--rp-text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-layout {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+                border-right: none;
+                border-bottom: 1px solid var(--rp-border);
+            }
+            
+            .content {
+                max-width: 100%;
+            }
+            
+            .search-bar {
+                display: none;
+            }
+            
+            .categories-grid,
+            .alerts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .analytics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(1rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--rp-text-secondary);
+        }
+
+        .status-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            background: var(--rp-success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-container">
+            <div class="brand">
+                <div class="brand-icon">
+                    <i class="fas fa-newspaper"></i>
+                </div>
+                <span class="brand-text">RPNews</span>
+                <span class="brand-badge">AI-Powered</span>
+            </div>
+            
+            <div class="search-bar">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="search-input" placeholder="Search articles, topics, sources..." id="globalSearch">
+            </div>
+            
+            <div class="nav-actions">
+                <button class="nav-btn" id="notificationsBtn">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="nav-btn" id="settingsBtn">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <div class="nav-btn">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Today's Overview</h3>
+                <div class="sidebar-stats">
+                    <div class="stat-row">
+                        <span class="stat-label">Total Articles</span>
+                        <span class="stat-value" id="totalArticles">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">High Priority</span>
+                        <span class="stat-value" id="highPriority" style="color: var(--rp-error);">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">AI Summaries</span>
+                        <span class="stat-value" id="aiSummaries" style="color: var(--rp-success);">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Navigation</h3>
+                <nav class="nav-menu">
+                    <button class="nav-item active" data-view="dashboard">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Dashboard
+                    </button>
+                </nav>
+            </div>
+
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Categories</h3>
+                <nav class="nav-menu">
+                    <button class="nav-item" data-view="ai">
+                        <i class="fas fa-robot"></i>
+                        AI & Technology
+                        <span class="nav-badge" id="aiCount">0</span>
+                    </button>
+                    <button class="nav-item" data-view="finance">
+                        <i class="fas fa-chart-line"></i>
+                        Finance & Markets
+                        <span class="nav-badge" id="financeCount">0</span>
+                    </button>
+                    <button class="nav-item" data-view="politics">
+                        <i class="fas fa-landmark"></i>
+                        Politics & Policy
+                        <span class="nav-badge" id="politicsCount">0</span>
+                    </button>
+                </nav>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>Last updated: <span id="lastUpdate">--:--</span></span>
+                </div>
+                <button class="collect-btn" id="collectBtn">
+                    <i class="fas fa-sync-alt" id="collectIcon"></i>
+                    Collect Latest
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div class="page-header">
+                <h1 class="page-title">Daily Intelligence Briefing</h1>
+                <p class="page-subtitle" id="currentDate"></p>
+            </div>
+
+            <!-- AI Overview -->
+            <div class="ai-overview">
+                <div class="ai-overview-header">
+                    <div>
+                        <h2 class="ai-overview-title">
+                            <i class="fas fa-brain"></i>
+                            AI-Generated Overview
+                        </h2>
+                    </div>
+                    <div class="ai-overview-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                </div>
+                <p class="ai-overview-text" id="aiOverviewText">
+                    🌅 Today's Intelligence Overview: Analyzing latest news from premium sources across AI, finance, and politics. AI-powered summaries and priority detection active.
+                </p>
+                <div class="ai-overview-footer">
+                    <i class="fas fa-robot"></i>
+                    <span>Generated by Enhanced AI Model • Analysis Active</span>
+                </div>
+            </div>
+
+            <!-- Priority Alerts -->
+            <section class="priority-alerts">
+                <h2 class="section-title">
+                    <i class="fas fa-exclamation-triangle" style="color: var(--rp-error);"></i>
+                    High Priority Updates
+                </h2>
+                <div class="alerts-grid" id="priorityAlerts">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        Loading priority alerts...
+                    </div>
+                </div>
+            </section>
+
+            <!-- Categories -->
+            <section class="categories-grid" id="categoriesGrid">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    Loading categories...
+                </div>
+            </section>
+
+            <!-- Analytics -->
+            <section class="analytics-card">
+                <h2 class="section-title">
+                    <i class="fas fa-chart-bar" style="color: var(--rp-primary);"></i>
+                    Analytics & Insights
+                </h2>
+                <div class="analytics-grid">
+                    <div class="analytics-stat">
+                        <div class="analytics-number" id="analyticsDaily">0</div>
+                        <div class="analytics-label">Articles Today</div>
+                    </div>
+                    <div class="analytics-stat">
+                        <div class="analytics-number" id="analyticsAI" style="color: var(--rp-secondary);">0</div>
+                        <div class="analytics-label">AI Summaries</div>
+                    </div>
+                    <div class="analytics-stat">
+                        <div class="analytics-number" id="analyticsSources" style="color: var(--rp-warning);">60</div>
+                        <div class="analytics-label">Active Sources</div>
+                    </div>
+                    <div class="analytics-stat">
+                        <div class="analytics-number" id="analyticsTime" style="color: #8b5cf6;">4.2</div>
+                        <div class="analytics-label">Avg Read Time</div>
+                    </div>
+                </div>
+                <div class="analytics-trend">
+                    <h3 style="font-size: 0.875rem; color: var(--rp-text); margin-bottom: 1rem;">Article Collection Trends (7 Days)</h3>
+                    <div class="trend-chart" id="trendChart">
+                        <div class="trend-bar" style="height: 50%;"></div>
+                        <div class="trend-bar" style="height: 65%;"></div>
+                        <div class="trend-bar" style="height: 75%;"></div>
+                        <div class="trend-bar" style="height: 90%;"></div>
+                        <div class="trend-bar" style="height: 100%;"></div>
+                        <div class="trend-bar" style="height: 80%;"></div>
+                        <div class="trend-bar" style="height: 70%;"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Global state
+        let currentData = null;
+        let currentView = 'dashboard';
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            setupEventListeners();
+            loadDashboardData();
+        });
+
+        function initializeApp() {
+            // Set current date
+            const now = new Date();
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        function setupEventListeners() {
+            // Navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const view = this.dataset.view;
+                    switchView(view);
+                });
+            });
+
+            // Collect button
+            document.getElementById('collectBtn').addEventListener('click', triggerCollection);
+
+            // Search
+            document.getElementById('globalSearch').addEventListener('input', handleSearch);
+        }
+
+        function switchView(view) {
+            currentView = view;
+            
+            // Update active nav item
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.view === view) {
+                    item.classList.add('active');
+                }
+            });
+
+            // Load view data
+            if (view === 'dashboard') {
+                loadDashboardData();
+            } else {
+                loadCategoryData(view);
+            }
+        }
+
+        async function loadDashboardData() {
+            try {
+                showLoading();
+                const response = await fetch('/api/news/dashboard');
+                const data = await response.json();
+                currentData = data;
+                displayDashboardData(data);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                showError('Failed to load dashboard data');
+            }
+        }
+
+        async function loadCategoryData(category) {
+            try {
+                showLoading();
+                const response = await fetch(`/api/news/category/${category}`);
+                const articles = await response.json();
+                displayCategoryData(category, articles);
+            } catch (error) {
+                console.error(`Error loading ${category} data:`, error);
+                showError(`Failed to load ${category} data`);
+            }
+        }
+
+        function displayDashboardData(data) {
+            // Update stats
+            document.getElementById('totalArticles').textContent = data.stats.totalArticles;
+            document.getElementById('highPriority').textContent = data.stats.highPriority;
+            document.getElementById('aiSummaries').textContent = data.stats.aiSummaries;
+            document.getElementById('aiCount').textContent = data.stats.aiCount;
+            document.getElementById('financeCount').textContent = data.stats.financeCount;
+            document.getElementById('politicsCount').textContent = data.stats.politicsCount;
+            document.getElementById('lastUpdate').textContent = data.stats.lastUpdate;
+
+            // Update AI overview
+            document.getElementById('aiOverviewText').textContent = data.dailyOverview;
+
+            // Update analytics
+            document.getElementById('analyticsDaily').textContent = data.analytics.dailyArticles;
+            document.getElementById('analyticsAI').textContent = data.analytics.aiSummaries;
+            document.getElementById('analyticsSources').textContent = data.analytics.activeSources;
+            document.getElementById('analyticsTime').textContent = data.analytics.avgReadTime;
+
+            // Display priority alerts
+            displayPriorityAlerts(data.highPriorityArticles);
+
+            // Display categories
+            displayCategories(data.categories);
+        }
+
+        function displayPriorityAlerts(articles) {
+            const container = document.getElementById('priorityAlerts');
+            
+            if (!articles || articles.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-info-circle"></i>
+                        <h3>No high priority alerts</h3>
+                        <p>All systems nominal. Check back later for updates.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = articles.slice(0, 6).map(article => `
+                <div class="alert-card ${article.category}" onclick="openArticle('${article.url}')">
+                    <div class="alert-header">
+                        <span class="alert-category ${article.category}">
+                            <i class="fas ${getCategoryIcon(article.category)}"></i>
+                            ${getCategoryLabel(article.category)}
+                        </span>
+                        <span class="alert-time">${article.publishedTime}</span>
+                    </div>
+                    <h3 class="alert-title">${article.title}</h3>
+                    <p class="alert-summary">${article.aiSummary}</p>
+                    <div class="alert-footer">
+                        <span class="alert-source">${article.source}</span>
+                        <div class="alert-actions">
+                            <a href="#" class="alert-action" onclick="event.stopPropagation(); markAsRead('${article.id}')">Mark Read</a>
+                            <a href="#" class="alert-action" onclick="event.stopPropagation(); starArticle('${article.id}')">Star</a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function displayCategories(categories) {
+            const container = document.getElementById('categoriesGrid');
+            
+            const categoryConfig = {
+                ai: { title: 'AI & Technology', icon: 'fas fa-robot' },
+                finance: { title: 'Finance & Markets', icon: 'fas fa-chart-line' },
+                politics: { title: 'Politics & Policy', icon: 'fas fa-landmark' }
+            };
+
+            container.innerHTML = Object.entries(categories).map(([key, articles]) => {
+                const config = categoryConfig[key];
+                return `
+                    <div class="category-card">
+                        <div class="category-header">
+                            <div class="category-title-group">
+                                <div class="category-icon ${key}">
+                                    <i class="${config.icon}"></i>
+                                </div>
+                                <h3 class="category-title">${config.title}</h3>
+                            </div>
+                            <span class="category-count">${articles.length} articles</span>
+                        </div>
+                        <div class="category-articles">
+                            ${articles.slice(0, 3).map((article, index) => `
+                                <div class="article-item" onclick="openArticle('${article.url}')">
+                                    <div class="priority-dot ${article.priority}"></div>
+                                    <div class="article-content">
+                                        <h4 class="article-title">${article.title}</h4>
+                                        <div class="article-meta">
+                                            <span>${article.source}</span>
+                                            <span>•</span>
+                                            <span>${article.readingTime} min read</span>
+                                            <span>•</span>
+                                            <span>${article.publishedTime}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="view-all-btn" onclick="switchView('${key}')">
+                            View All ${config.title} <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function displayCategoryData(category, articles) {
+            const container = document.getElementById('categoriesGrid');
+            const categoryConfig = {
+                ai: { title: 'AI & Technology', icon: 'fas fa-robot' },
+                finance: { title: 'Finance & Markets', icon: 'fas fa-chart-line' },
+                politics: { title: 'Politics & Policy', icon: 'fas fa-landmark' }
+            };
+            
+            const config = categoryConfig[category];
+            
+            container.innerHTML = `
+                <div style="grid-column: 1 / -1;">
+                    <div class="category-card" style="max-width: none;">
+                        <div class="category-header">
+                            <div class="category-title-group">
+                                <div class="category-icon ${category}">
+                                    <i class="${config.icon}"></i>
+                                </div>
+                                <h3 class="category-title">${config.title}</h3>
+                            </div>
+                            <span class="category-count">${articles.length} articles</span>
+                        </div>
+                        <div class="category-articles" style="max-height: 500px; overflow-y: auto;">
+                            ${articles.map(article => `
+                                <div class="article-item" onclick="openArticle('${article.url}')">
+                                    <div class="priority-dot ${article.priority}"></div>
+                                    <div class="article-content">
+                                        <h4 class="article-title">${article.title}</h4>
+                                        ${article.aiSummary ? `<p class="alert-summary">${article.aiSummary}</p>` : ''}
+                                        <div class="article-meta">
+                                            <span>${article.source}</span>
+                                            <span>•</span>
+                                            <span>${article.readingTime} min read</span>
+                                            <span>•</span>
+                                            <span>${article.publishedTime}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="view-all-btn" onclick="switchView('dashboard')">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function triggerCollection() {
+            const btn = document.getElementById('collectBtn');
+            const icon = document.getElementById('collectIcon');
+            
+            btn.disabled = true;
+            icon.style.animation = 'spin 1s linear infinite';
+            btn.innerHTML = '<i class="fas fa-sync-alt" style="animation: spin 1s linear infinite;"></i> Collecting...';
+
+            try {
+                const response = await fetch('/api/news/collect', { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show success feedback
+                    btn.innerHTML = '<i class="fas fa-check"></i> Collection Started';
+                    
+                    // Reload data after a delay
+                    setTimeout(() => {
+                        loadDashboardData();
+                        btn.innerHTML = '<i class="fas fa-sync-alt"></i> Collect Latest';
+                        btn.disabled = false;
+                    }, 3000);
+                } else {
+                    throw new Error('Collection failed');
+                }
+            } catch (error) {
+                console.error('Collection error:', error);
+                btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed';
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-sync-alt"></i> Collect Latest';
+                    btn.disabled = false;
+                }, 3000);
+            }
+        }
+
+        function handleSearch(event) {
+            const query = event.target.value;
+            if (query.length > 2) {
+                // Implement search functionality
+                console.log('Searching for:', query);
+                // TODO: Add search API call
+            }
+        }
+
+        function openArticle(url) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        }
+
+        function markAsRead(articleId) {
+            // TODO: Implement mark as read
+            console.log('Mark as read:', articleId);
+        }
+
+        function starArticle(articleId) {
+            // TODO: Implement star article
+            console.log('Star article:', articleId);
+        }
+
+        function getCategoryIcon(category) {
+            const icons = {
+                ai: 'fa-robot',
+                finance: 'fa-chart-line',
+                politics: 'fa-landmark'
+            };
+            return icons[category] || 'fa-newspaper';
+        }
+
+        function getCategoryLabel(category) {
+            const labels = {
+                ai: 'AI Technology',
+                finance: 'Finance',
+                politics: 'Politics'
+            };
+            return labels[category] || 'News';
+        }
+
+        function showLoading() {
+            // Show loading states for different sections
+            document.getElementById('priorityAlerts').innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    Loading priority alerts...
+                </div>
+            `;
+            
+            document.getElementById('categoriesGrid').innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    Loading categories...
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            const errorHtml = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-triangle" style="color: var(--rp-error);"></i>
+                    <h3>Error</h3>
+                    <p>${message}</p>
+                    <button class="collect-btn" onclick="loadDashboardData()" style="margin-top: 1rem; width: auto; padding: 0.5rem 1rem;">
+                        Retry
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('priorityAlerts').innerHTML = errorHtml;
+            document.getElementById('categoriesGrid').innerHTML = errorHtml;
+        }
+
+        // Auto-refresh every 5 minutes
+        setInterval(() => {
+            if (currentView === 'dashboard') {
+                loadDashboardData();
+            }
+        }, 5 * 60 * 1000);
+    </script>
+</body>
+</html>"""
+    return html_contentif __name__ == "__main__":
+    logger.info("🚀 Starting Enhanced RPNews Platform")
+    logger.info(f"🌐 Port: {PORT}")
+    logger.info(f"🤖 AI Engine: {news_engine.ai.ai_type}")
+    logger.info(f"🎯"""
 RPNews - Enhanced AI-Powered News Intelligence Platform
 Features: Proper AI summaries, better priority detection, article management
 Deploy to Railway, Render, or Fly.io for free hosting
@@ -495,41 +1806,77 @@ class RPNewsEngine:
         return min(minutes, 15)  # Cap at 15 minutes
     
     async def background_collection(self):
-        """Enhanced background collection with initial startup collection"""
-        logger.info("🚀 Starting initial news collection...")
+        """Enhanced background collection with faster startup for React frontend"""
+        logger.info("🚀 Starting rapid initial news collection for React frontend...")
         
-        # Initial collection on startup
+        # Quick initial collection on startup
         try:
             async with aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=45),
-                headers={'User-Agent': 'RPNews/2.0 (+https://rpnews.com)'}
+                timeout=aiohttp.ClientTimeout(total=30),
+                headers={'User-Agent': 'RPNews Enhanced/2.0'}
             ) as session:
                 self.session = session
+                
+                # Quick collection from top sources only for initial load
+                await self._quick_initial_collection()
+                
+                # Then do full collection
                 await self.collect_all_news()
                 self.session = None
-            logger.info("✅ Initial collection completed")
+            logger.info("✅ Initial collection completed - React frontend ready")
         except Exception as e:
             logger.error(f"Initial collection error: {e}")
         
         # Continue with regular collection cycle
         while True:
             try:
-                await asyncio.sleep(3600)  # Wait 1 hour
+                await asyncio.sleep(1800)  # Wait 30 minutes (more frequent)
                 
                 logger.info("🔄 Background collection starting...")
                 async with aiohttp.ClientSession(
                     timeout=aiohttp.ClientTimeout(total=30),
-                    headers={'User-Agent': 'RPNews/2.0 (+https://rpnews.com)'}
+                    headers={'User-Agent': 'RPNews Enhanced/2.0'}
                 ) as session:
                     self.session = session
                     await self.collect_all_news()
                     self.session = None
                 
-                logger.info("✅ Background collection complete. Next run in 1 hour.")
+                logger.info("✅ Background collection complete. Next run in 30 minutes.")
                 
             except Exception as e:
                 logger.error(f"Background collection error: {str(e)}")
-                await asyncio.sleep(600)  # Wait 10 minutes on error
+                await asyncio.sleep(300)  # Wait 5 minutes on error
+    
+    async def _quick_initial_collection(self):
+        """Quick collection from top priority sources for immediate React frontend loading"""
+        logger.info("🚀 Quick initial collection starting...")
+        
+        # Only collect from high-priority sources initially
+        priority_sources = {
+            'ai': [s for s in self.sources['ai'] if s['priority'] == 'high'][:3],
+            'finance': [s for s in self.sources['finance'] if s['priority'] == 'high'][:3],
+            'politics': [s for s in self.sources['politics'] if s['priority'] == 'high'][:3]
+        }
+        
+        total_articles = 0
+        for category, sources in priority_sources.items():
+            for source in sources:
+                try:
+                    articles = await self.fetch_rss_feed(source, category)
+                    for article in articles[:3]:  # Limit to 3 articles per source
+                        self.save_article(article)
+                        total_articles += 1
+                    
+                    await asyncio.sleep(1)  # Shorter delay for initial collection
+                    
+                except Exception as e:
+                    logger.warning(f"Quick collection error with {source['name']}: {str(e)}")
+                    continue
+        
+        # Generate initial overview
+        await self._generate_daily_overview()
+        logger.info(f"🚀 Quick collection complete: {total_articles} priority articles")
+        return total_articles
     
     async def collect_all_news(self):
         """Enhanced news collection with better processing"""
@@ -806,16 +2153,188 @@ class RPNewsEngine:
             logger.error(f"Error starring article: {e}")
             return False
 
-# Initialize FastAPI application
+# Initialize FastAPI application with static files support
 app = FastAPI(title="RPNews - Enhanced AI News Intelligence", version="2.0.0")
 
+# Enhanced CORS for React frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # In production, specify your domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve React static files (for production builds)
+try:
+    from fastapi.staticfiles import StaticFiles
+    import os
+    
+    # Check if we have a React build directory
+    if os.path.exists("dist"):
+        app.mount("/assets", StaticFiles(directory="dist/assets"), name="assets")
+        
+        @app.get("/")
+        async def serve_react_app():
+            """Serve React app for production"""
+            with open("dist/index.html", "r") as f:
+                return HTMLResponse(content=f.read())
+        
+        @app.get("/{full_path:path}")
+        async def catch_all(full_path: str):
+            """Catch-all route for React Router"""
+            # Serve API routes normally
+            if full_path.startswith("api/"):
+                raise HTTPException(status_code=404, detail="API endpoint not found")
+            
+            # Serve React app for all other routes
+            with open("dist/index.html", "r") as f:
+                return HTMLResponse(content=f.read())
+                
+    else:
+        # Development mode - serve the enhanced dashboard
+        @app.get("/", response_class=HTMLResponse)
+        async def dashboard():
+            """Enhanced development dashboard"""
+            return """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPNews Enhanced - Development Mode</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui; margin: 0; background: #f8fafc; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .header { background: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card { background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .button { background: #3b82f6; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; }
+        .button:hover { background: #2563eb; }
+        .status { padding: 0.5rem 1rem; border-radius: 6px; margin: 0.5rem 0; }
+        .success { background: #dcfce7; color: #166534; }
+        .warning { background: #fef3c7; color: #92400e; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 RPNews Enhanced - Development Mode</h1>
+            <p>Your AI-powered news intelligence platform is running!</p>
+            <div id="status" class="status warning">⏳ Initializing system...</div>
+        </div>
+        
+        <div class="grid">
+            <div class="card">
+                <h3>🤖 AI Analysis</h3>
+                <p>Advanced AI summaries and priority detection</p>
+                <div id="ai-status">Loading...</div>
+            </div>
+            
+            <div class="card">
+                <h3>📰 News Collection</h3>
+                <p>60+ premium sources across AI, Finance, Politics</p>
+                <button class="button" onclick="collectNews()">Collect Latest News</button>
+                <div id="collection-status"></div>
+            </div>
+            
+            <div class="card">
+                <h3>📊 Dashboard Data</h3>
+                <p>Real-time analytics and insights</p>
+                <button class="button" onclick="loadDashboard()">Load Dashboard</button>
+                <div id="dashboard-data"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3>🔗 API Endpoints</h3>
+            <ul>
+                <li><a href="/api/news/dashboard">Dashboard Data</a></li>
+                <li><a href="/api/health">Health Check</a></li>
+                <li><a href="/api/stats">Statistics</a></li>
+                <li><a href="/docs">API Documentation</a></li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                const statusEl = document.getElementById('status');
+                const aiStatusEl = document.getElementById('ai-status');
+                
+                if (data.status === 'healthy') {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = '✅ System Online - All services running';
+                    aiStatusEl.textContent = `AI: ${data.ai_type} (${data.ai_available ? 'Active' : 'Fallback'})`;
+                } else {
+                    statusEl.className = 'status warning';
+                    statusEl.textContent = '⚠️ System Issues Detected';
+                }
+            } catch (error) {
+                document.getElementById('status').textContent = '❌ Unable to connect to backend';
+            }
+        }
+        
+        async function collectNews() {
+            const button = event.target;
+            const statusEl = document.getElementById('collection-status');
+            
+            button.textContent = 'Collecting...';
+            button.disabled = true;
+            
+            try {
+                const response = await fetch('/api/news/collect', { method: 'POST' });
+                const data = await response.json();
+                statusEl.innerHTML = '<div class="status success">✅ Collection started successfully</div>';
+                
+                setTimeout(() => {
+                    button.textContent = 'Collect Latest News';
+                    button.disabled = false;
+                }, 3000);
+            } catch (error) {
+                statusEl.innerHTML = '<div class="status warning">❌ Collection failed</div>';
+                button.textContent = 'Collect Latest News';
+                button.disabled = false;
+            }
+        }
+        
+        async function loadDashboard() {
+            const statusEl = document.getElementById('dashboard-data');
+            statusEl.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('/api/news/dashboard');
+                const data = await response.json();
+                statusEl.innerHTML = `
+                    <div class="status success">
+                        📊 ${data.stats.totalArticles} articles • 
+                        🔥 ${data.stats.highPriority} high priority • 
+                        🤖 ${data.stats.aiSummaries} AI summaries
+                    </div>
+                `;
+            } catch (error) {
+                statusEl.innerHTML = '<div class="status warning">❌ Failed to load dashboard</div>';
+            }
+        }
+        
+        // Auto-check status on load
+        checkStatus();
+        setInterval(checkStatus, 30000); // Check every 30 seconds
+    </script>
+</body>
+</html>"""
+
+except ImportError:
+    # Fallback if StaticFiles not available
+    @app.get("/", response_class=HTMLResponse)
+    async def dashboard():
+        """Development dashboard"""
+        return """<!DOCTYPE html>
+<html><head><title>RPNews Enhanced</title></head>
+<body><h1>RPNews Enhanced API</h1><p>Backend is running. Frontend build not found.</p>
+<a href="/docs">View API Documentation</a></body></html>"""
 
 # Initialize the enhanced news engine
 news_engine = RPNewsEngine()
@@ -1835,8 +3354,481 @@ async def dashboard():
 </html>"""
     return html_content
 
-# Enhanced API Endpoints
-@app.get("/api/morning-briefing")
+@app.get("/api/news/dashboard")
+async def get_dashboard_data():
+    """Get comprehensive dashboard data for the beautiful UI"""
+    try:
+        with sqlite3.connect(news_engine.db_path) as conn:
+            # Get stats
+            stats = {}
+            total_articles = 0
+            high_priority_count = 0
+            ai_summaries_count = 0
+            
+            category_counts = {'ai': 0, 'finance': 0, 'politics': 0}
+            categories_data = {'ai': [], 'finance': [], 'politics': []}
+            high_priority_articles = []
+            
+            for category in ['ai', 'finance', 'politics']:
+                cursor = conn.execute("""
+                    SELECT id, title, url, source, author, published_date, excerpt,
+                           ai_summary, priority, tags, reading_time, is_read, is_starred
+                    FROM articles 
+                    WHERE category = ? AND published_date >= datetime('now', '-24 hours')
+                    ORDER BY 
+                        CASE priority 
+                            WHEN 'high' THEN 3 
+                            WHEN 'medium' THEN 2 
+                            ELSE 1 
+                        END DESC,
+                        published_date DESC
+                    LIMIT 10
+                """, (category,))
+                
+                articles = []
+                for row in cursor.fetchall():
+                    # Calculate time ago
+                    try:
+                        pub_date = datetime.fromisoformat(row[5])
+                        hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
+                        time_str = f"{hours_ago}h ago" if hours_ago < 24 else f"{hours_ago//24}d ago"
+                    except:
+                        time_str = "Recently"
+                    
+                    article_data = {
+                        'id': row[0],
+                        'title': row[1],
+                        'url': row[2],
+                        'source': row[3],
+                        'author': row[4] or 'Unknown',
+                        'publishedTime': time_str,
+                        'excerpt': row[6],
+                        'aiSummary': row[7] or f"📰 {category.upper()}: {row[1][:100]}...",
+                        'priority': row[8] or 'medium',
+                        'tags': json.loads(row[9] or '[]'),
+                        'readingTime': row[10] or 3,
+                        'category': category
+                    }
+                    
+                    articles.append(article_data)
+                    total_articles += 1
+                    
+                    if row[8] == 'high':
+                        high_priority_count += 1
+                        high_priority_articles.append(article_data)
+                    
+                    if row[7]:  # Has AI summary
+                        ai_summaries_count += 1
+                
+                categories_data[category] = articles
+                category_counts[category] = len(articles)
+            
+            # Get daily overview
+            today = datetime.now().strftime('%Y-%m-%d')
+            cursor = conn.execute("""
+                SELECT overview_text FROM daily_overviews 
+                WHERE date = ? ORDER BY generated_at DESC LIMIT 1
+            """, (today,))
+            overview_result = cursor.fetchone()
+            daily_overview = overview_result[0] if overview_result else None
+            
+            if not daily_overview:
+                daily_overview = f"🌅 Today's Intelligence Overview: {total_articles} articles collected from premium sources. {high_priority_count} high-priority developments identified across AI, finance, and politics. Enhanced AI analysis and priority detection active."
+            
+            # Calculate analytics
+            analytics = {
+                'dailyArticles': total_articles,
+                'aiSummaries': ai_summaries_count,
+                'activeSources': sum(len(sources) for sources in news_engine.sources.values()),
+                'avgReadTime': 4.2,
+                'trend': [16, 20, 24, 28, 32, 26, 22]  # Mock trend data
+            }
+            
+            stats = {
+                'totalArticles': total_articles,
+                'highPriority': high_priority_count,
+                'aiSummaries': ai_summaries_count,
+                'aiCount': category_counts['ai'],
+                'financeCount': category_counts['finance'],
+                'politicsCount': category_counts['politics'],
+                'lastUpdate': datetime.now().strftime('%H:%M')
+            }
+            
+            return {
+                'stats': stats,
+                'dailyOverview': daily_overview,
+                'highPriorityArticles': high_priority_articles[:6],
+                'categories': categories_data,
+                'analytics': analytics
+            }
+            
+    except Exception as e:
+        logger.error(f"Error getting dashboard data: {str(e)}")
+        # Return default data if database is empty
+        return {
+            'stats': {
+                'totalArticles': 0,
+                'highPriority': 0,
+                'aiSummaries': 0,
+                'aiCount': 0,
+                'financeCount': 0,
+                'politicsCount': 0,
+                'lastUpdate': datetime.now().strftime('%H:%M')
+            },
+            'dailyOverview': "🌅 Welcome to RPNews Enhanced! Your AI-powered news intelligence platform is ready. Click 'Collect Latest' to start gathering news from 60+ premium sources with AI-powered analysis.",
+            'highPriorityArticles': [],
+            'categories': {'ai': [], 'finance': [], 'politics': []},
+            'analytics': {
+                'dailyArticles': 0,
+                'aiSummaries': 0,
+                'activeSources': 60,
+                'avgReadTime': 4.2,
+                'trend': [0, 0, 0, 0, 0, 0, 0]
+            }
+        }
+
+@app.get("/api/news/category/{category}")
+async def get_category_articles(category: str, limit: int = 50):
+    """Get articles for a specific category"""
+    if category not in ['ai', 'finance', 'politics']:
+        raise HTTPException(status_code=400, detail="Invalid category")
+    
+    try:
+        with sqlite3.connect(news_engine.db_path) as conn:
+            cursor = conn.execute("""
+                SELECT id, title, url, source, author, published_date, excerpt,
+                       ai_summary, priority, tags, reading_time, is_read, is_starred
+                FROM articles 
+                WHERE category = ?
+                ORDER BY published_date DESC
+                LIMIT ?
+            """, (category, limit))
+            
+            articles = []
+            for row in cursor.fetchall():
+                try:
+                    pub_date = datetime.fromisoformat(row[5])
+                    hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
+                    time_str = f"{hours_ago}h ago" if hours_ago < 24 else f"{hours_ago//24}d ago"
+                except:
+                    time_str = "Recently"
+                
+                articles.append({
+                    'id': row[0],
+                    'title': row[1],
+                    'url': row[2],
+                    'source': row[3],
+                    'author': row[4] or 'Unknown',
+                    'publishedTime': time_str,
+                    'excerpt': row[6],
+                    'aiSummary': row[7] or f"📰 {category.upper()}: {row[1][:100]}...",
+                    'priority': row[8] or 'medium',
+                    'tags': json.loads(row[9] or '[]'),
+                    'readingTime': row[10] or 3,
+                    'category': category
+                })
+            
+            return articles
+            
+    except Exception as e:
+        logger.error(f"Error getting {category} articles: {str(e)}")
+        return []
+
+@app.post("/api/news/collect")
+async def trigger_news_collection(background_tasks: BackgroundTasks):
+    """Trigger news collection for the beautiful UI"""
+    
+    async def run_collection():
+        try:
+            logger.info("Manual collection triggered from beautiful UI")
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=60),
+                headers={'User-Agent': 'RPNews Enhanced/2.0'}
+            ) as session:
+                news_engine.session = session
+                total_collected = await news_engine.collect_all_news()
+                news_engine.session = None
+                logger.info(f"Collection completed: {total_collected} articles")
+        except Exception as e:
+            logger.error(f"Collection error: {str(e)}")
+    
+    background_tasks.add_task(run_collection)
+    
+    return {
+        'success': True,
+        'message': 'News collection started successfully',
+        'timestamp': datetime.now().isoformat()
+    }
+async def get_dashboard_data():
+    """Get comprehensive dashboard data for React frontend"""
+    try:
+        with sqlite3.connect(news_engine.db_path) as conn:
+            # Get stats
+            stats = {}
+            total_articles = 0
+            high_priority_count = 0
+            ai_summaries_count = 0
+            
+            category_counts = {'ai': 0, 'finance': 0, 'politics': 0}
+            categories_data = {'ai': [], 'finance': [], 'politics': []}
+            high_priority_articles = []
+            
+            for category in ['ai', 'finance', 'politics']:
+                cursor = conn.execute("""
+                    SELECT id, title, url, source, author, published_date, excerpt,
+                           ai_summary, priority, tags, reading_time, is_read, is_starred
+                    FROM articles 
+                    WHERE category = ? AND published_date >= datetime('now', '-24 hours')
+                    ORDER BY 
+                        CASE priority 
+                            WHEN 'high' THEN 3 
+                            WHEN 'medium' THEN 2 
+                            ELSE 1 
+                        END DESC,
+                        published_date DESC
+                    LIMIT 10
+                """, (category,))
+                
+                articles = []
+                for row in cursor.fetchall():
+                    # Calculate time ago
+                    try:
+                        pub_date = datetime.fromisoformat(row[5])
+                        hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
+                        time_str = f"{hours_ago}h ago" if hours_ago < 24 else f"{hours_ago//24}d ago"
+                    except:
+                        time_str = "Recently"
+                    
+                    article_data = {
+                        'id': row[0],
+                        'title': row[1],
+                        'url': row[2],
+                        'source': row[3],
+                        'author': row[4] or 'Unknown',
+                        'publishedTime': time_str,
+                        'excerpt': row[6],
+                        'aiSummary': row[7] or f"Summary for {row[1][:50]}...",
+                        'priority': row[8] or 'medium',
+                        'tags': json.loads(row[9] or '[]'),
+                        'readingTime': row[10] or 3,
+                        'category': category
+                    }
+                    
+                    articles.append(article_data)
+                    total_articles += 1
+                    
+                    if row[8] == 'high':
+                        high_priority_count += 1
+                        high_priority_articles.append(article_data)
+                    
+                    if row[7]:  # Has AI summary
+                        ai_summaries_count += 1
+                
+                categories_data[category] = articles
+                category_counts[category] = len(articles)
+            
+            # Get daily overview
+            today = datetime.now().strftime('%Y-%m-%d')
+            cursor = conn.execute("""
+                SELECT overview_text FROM daily_overviews 
+                WHERE date = ? ORDER BY generated_at DESC LIMIT 1
+            """, (today,))
+            overview_result = cursor.fetchone()
+            daily_overview = overview_result[0] if overview_result else None
+            
+            if not daily_overview:
+                daily_overview = f"🌅 Today's Intelligence Overview: {total_articles} articles collected from premium sources. {high_priority_count} high-priority developments identified across AI, finance, and politics. AI-powered analysis and priority detection active."
+            
+            # Calculate analytics
+            analytics = {
+                'dailyArticles': total_articles,
+                'aiSummaries': ai_summaries_count,
+                'activeSources': sum(len(sources) for sources in news_engine.sources.values()),
+                'avgReadTime': 4.2,
+                'trend': [16, 20, 24, 28, 32, 26, 22]  # Mock trend data
+            }
+            
+            stats = {
+                'totalArticles': total_articles,
+                'highPriority': high_priority_count,
+                'aiSummaries': ai_summaries_count,
+                'aiCount': category_counts['ai'],
+                'financeCount': category_counts['finance'],
+                'politicsCount': category_counts['politics'],
+                'lastUpdate': datetime.now().strftime('%H:%M')
+            }
+            
+            return {
+                'stats': stats,
+                'dailyOverview': daily_overview,
+                'highPriorityArticles': high_priority_articles[:6],
+                'categories': categories_data,
+                'analytics': analytics
+            }
+            
+    except Exception as e:
+        logger.error(f"Error getting dashboard data: {str(e)}")
+        # Return mock data if database is empty or has issues
+        return {
+            'stats': {
+                'totalArticles': 0,
+                'highPriority': 0,
+                'aiSummaries': 0,
+                'aiCount': 0,
+                'financeCount': 0,
+                'politicsCount': 0,
+                'lastUpdate': datetime.now().strftime('%H:%M')
+            },
+            'dailyOverview': "🌅 Welcome to RPNews Enhanced! Your AI-powered news intelligence platform is initializing. Click 'Collect Latest' to start gathering news from 60+ premium sources.",
+            'highPriorityArticles': [],
+            'categories': {'ai': [], 'finance': [], 'politics': []},
+            'analytics': {
+                'dailyArticles': 0,
+                'aiSummaries': 0,
+                'activeSources': 60,
+                'avgReadTime': 4.2,
+                'trend': [0, 0, 0, 0, 0, 0, 0]
+            }
+        }
+
+@app.get("/api/news/category/{category}")
+async def get_category_articles(category: str, limit: int = 20):
+    """Get articles for a specific category"""
+    if category not in ['ai', 'finance', 'politics']:
+        raise HTTPException(status_code=400, detail="Invalid category")
+    
+    try:
+        with sqlite3.connect(news_engine.db_path) as conn:
+            cursor = conn.execute("""
+                SELECT id, title, url, source, author, published_date, excerpt,
+                       ai_summary, priority, tags, reading_time, is_read, is_starred
+                FROM articles 
+                WHERE category = ?
+                ORDER BY published_date DESC
+                LIMIT ?
+            """, (category, limit))
+            
+            articles = []
+            for row in cursor.fetchall():
+                try:
+                    pub_date = datetime.fromisoformat(row[5])
+                    hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
+                    time_str = f"{hours_ago}h ago" if hours_ago < 24 else f"{hours_ago//24}d ago"
+                except:
+                    time_str = "Recently"
+                
+                articles.append({
+                    'id': row[0],
+                    'title': row[1],
+                    'url': row[2],
+                    'source': row[3],
+                    'author': row[4] or 'Unknown',
+                    'publishedTime': time_str,
+                    'excerpt': row[6],
+                    'aiSummary': row[7],
+                    'priority': row[8],
+                    'tags': json.loads(row[9] or '[]'),
+                    'readingTime': row[10] or 3,
+                    'category': category
+                })
+            
+            return articles
+            
+    except Exception as e:
+        logger.error(f"Error getting {category} articles: {str(e)}")
+        return []
+
+@app.post("/api/news/collect")
+async def trigger_news_collection(background_tasks: BackgroundTasks):
+    """Trigger news collection for React frontend"""
+    
+    async def run_collection():
+        try:
+            logger.info("Manual collection triggered from React frontend")
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=60),
+                headers={'User-Agent': 'RPNews Enhanced/2.0'}
+            ) as session:
+                news_engine.session = session
+                total_collected = await news_engine.collect_all_news()
+                news_engine.session = None
+                logger.info(f"Collection completed: {total_collected} articles")
+        except Exception as e:
+            logger.error(f"Collection error: {str(e)}")
+    
+    background_tasks.add_task(run_collection)
+    
+    return {
+        'success': True,
+        'message': 'News collection started successfully',
+        'timestamp': datetime.now().isoformat()
+    }
+
+@app.get("/api/news/search")
+async def search_articles(
+    keywords: str = "", 
+    category: str = "", 
+    priority: str = "",
+    limit: int = 50
+):
+    """Search articles with filters"""
+    try:
+        with sqlite3.connect(news_engine.db_path) as conn:
+            query = """
+                SELECT id, title, url, source, author, published_date, excerpt,
+                       ai_summary, priority, tags, reading_time, category
+                FROM articles 
+                WHERE 1=1
+            """
+            params = []
+            
+            if keywords:
+                query += " AND (title LIKE ? OR content LIKE ? OR ai_summary LIKE ?)"
+                search_term = f"%{keywords}%"
+                params.extend([search_term, search_term, search_term])
+            
+            if category:
+                query += " AND category = ?"
+                params.append(category)
+            
+            if priority:
+                query += " AND priority = ?"
+                params.append(priority)
+            
+            query += " ORDER BY published_date DESC LIMIT ?"
+            params.append(limit)
+            
+            cursor = conn.execute(query, params)
+            
+            articles = []
+            for row in cursor.fetchall():
+                try:
+                    pub_date = datetime.fromisoformat(row[5])
+                    hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
+                    time_str = f"{hours_ago}h ago" if hours_ago < 24 else f"{hours_ago//24}d ago"
+                except:
+                    time_str = "Recently"
+                
+                articles.append({
+                    'id': row[0],
+                    'title': row[1],
+                    'url': row[2],
+                    'source': row[3],
+                    'author': row[4] or 'Unknown',
+                    'publishedTime': time_str,
+                    'excerpt': row[6],
+                    'aiSummary': row[7],
+                    'priority': row[8],
+                    'tags': json.loads(row[9] or '[]'),
+                    'readingTime': row[10] or 3,
+                    'category': row[11]
+                })
+            
+            return articles
+            
+    except Exception as e:
+        logger.error(f"Error searching articles: {str(e)}")
+        return []
 async def get_morning_briefing():
     """Generate comprehensive morning briefing with daily overview"""
     try:
