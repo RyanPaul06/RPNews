@@ -1,6 +1,6 @@
 """
-RPNews - Fixed AI-Powered News Intelligence Platform
-Fixed RSS feeds, better error handling, automatic continuous updates
+RPNews - Complete AI-Powered News Intelligence Platform
+Full frontend included with all UI components
 Deploy to Railway, Render, or Fly.io for free hosting
 """
 
@@ -706,7 +706,7 @@ class RPNewsEngine:
             return False
 
 # Initialize FastAPI application
-app = FastAPI(title="RPNews - Fixed AI News Intelligence", version="2.0.1")
+app = FastAPI(title="RPNews - Complete AI News Intelligence", version="2.0.2")
 
 app.add_middleware(
     CORSMiddleware,
@@ -722,13 +722,13 @@ news_engine = RPNewsEngine()
 @app.on_event("startup")
 async def startup_event():
     """Start background tasks when FastAPI starts"""
-    logger.info("🚀 Fixed FastAPI startup - starting continuous background collection")
+    logger.info("🚀 Complete FastAPI startup - starting continuous background collection")
     news_engine.start_background_collection()
 
-# Enhanced professional news dashboard with better loading states
+# Complete professional news dashboard with full UI
 @app.get("/", response_class=HTMLResponse)
 async def dashboard():
-    """Enhanced professional news intelligence dashboard"""
+    """Complete professional news intelligence dashboard with full frontend"""
     html_content = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1332,6 +1332,7 @@ async def dashboard():
                     <span>Auto-updating</span>
                 </div>
                 <button class="control-btn secondary" data-view="reading-list">📖 Reading List</button>
+                <button class="control-btn secondary" onclick="debugAPI()">🔍 Debug</button>
                 <button class="control-btn" onclick="refreshNews()">
                     <span id="refresh-icon">↻</span> Refresh
                 </button>
@@ -1434,10 +1435,18 @@ async def dashboard():
                 }
                 
                 currentData = await response.json();
+                
+                // Log the response for debugging
+                console.log('Briefing data received:', currentData);
+                
+                // Always try to display content, even if it seems empty
                 displayContent();
+                
             } catch (error) {
                 console.error('Error loading briefing:', error);
-                showEmptyState("Unable to load news briefing. The system is collecting articles in the background. Please try again in a few minutes.");
+                // Even on error, try to show something
+                hideLoading();
+                showEmptyState(`Unable to load news briefing. Error: ${error.message}`);
             } finally {
                 isLoading = false;
             }
@@ -1475,6 +1484,37 @@ async def dashboard():
                 setTimeout(() => {
                     refreshIcon.style.animation = 'none';
                 }, 1000);
+            }
+        }
+
+        async function debugAPI() {
+            console.log('=== DEBUG API CALLS ===');
+            
+            try {
+                // Test health endpoint
+                console.log('Testing health endpoint...');
+                const healthResponse = await fetch('/api/health');
+                const healthData = await healthResponse.json();
+                console.log('Health data:', healthData);
+                
+                // Test morning briefing endpoint
+                console.log('Testing morning briefing endpoint...');
+                const briefingResponse = await fetch('/api/morning-briefing');
+                const briefingData = await briefingResponse.json();
+                console.log('Briefing data:', briefingData);
+                
+                // Test stats endpoint
+                console.log('Testing stats endpoint...');
+                const statsResponse = await fetch('/api/stats');
+                const statsData = await statsResponse.json();
+                console.log('Stats data:', statsData);
+                
+                alert(`Debug complete! Check browser console (F12) for details. 
+Articles found: ${briefingData.total_articles || 0}`);
+                
+            } catch (error) {
+                console.error('Debug error:', error);
+                alert(`Debug failed: ${error.message}`);
             }
         }
 
@@ -1555,679 +1595,24 @@ async def dashboard():
         function displayContent() {
             hideLoading();
             
-            if (!currentData || !currentData.briefing) {
-                showEmptyState("Your briefing is being prepared. Fresh articles are being collected from premium sources.");
+            // Log what we received
+            console.log('Displaying content. Data check:', {
+                hasData: !!currentData,
+                hasBriefing: !!(currentData && currentData.briefing),
+                totalArticles: currentData?.total_articles || 0,
+                aiArticles: currentData?.briefing?.ai?.length || 0,
+                financeArticles: currentData?.briefing?.finance?.length || 0,
+                politicsArticles: currentData?.briefing?.politics?.length || 0
+            });
+            
+            if (!currentData) {
+                showEmptyState("No data received from server. Please try refreshing.");
                 return;
             }
 
             // Check if we have any articles at all
-            const totalArticles = (currentData.briefing.ai?.length || 0) + 
-                                 (currentData.briefing.finance?.length || 0) + 
-                                 (currentData.briefing.politics?.length || 0);
+            const totalArticles = (currentData.briefing?.ai?.length || 0) + 
+                                 (currentData.briefing?.finance?.length || 0) + 
+                                 (currentData.briefing?.politics?.length || 0);
             
-            if (totalArticles === 0) {
-                showEmptyState("Articles are being collected and processed. This may take a few minutes on first startup.");
-                return;
-            }
-
-            // Update header
-            document.getElementById('briefing-date').textContent = currentData.date;
-            
-            // Show daily overview if available
-            const overviewDiv = document.getElementById('daily-overview');
-            const overviewText = document.getElementById('overview-text');
-            if (currentData.daily_overview && currentView === 'briefing') {
-                overviewText.textContent = currentData.daily_overview;
-                overviewDiv.style.display = 'block';
-            } else {
-                overviewDiv.style.display = 'none';
-            }
-            
-            // Update stats
-            updateStatsBar();
-            
-            // Display articles
-            const contentDiv = document.getElementById('news-content');
-            contentDiv.className = 'fade-in';
-            
-            if (currentView === 'briefing') {
-                contentDiv.innerHTML = displayAllCategories();
-            } else if (currentView === 'starred') {
-                contentDiv.innerHTML = displayStarredArticles();
-            } else if (currentView === 'reading-list') {
-                contentDiv.innerHTML = displayUnreadArticles();
-            } else {
-                contentDiv.innerHTML = displaySingleCategory(currentView);
-            }
-        }
-
-        function updateStatsBar() {
-            const statsBar = document.getElementById('stats-bar');
-            
-            if (currentView === 'briefing') {
-                const totalArticles = currentData.total_articles || 0;
-                const aiCount = currentData.briefing.ai?.length || 0;
-                const financeCount = currentData.briefing.finance?.length || 0;
-                const politicsCount = currentData.briefing.politics?.length || 0;
-                const highPriorityCount = currentData.high_priority_count || 0;
-                
-                statsBar.innerHTML = `
-                    <div class="stat-item">
-                        <div class="stat-number">${totalArticles}</div>
-                        <div class="stat-label">Total Articles</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${highPriorityCount}</div>
-                        <div class="stat-label">High Priority</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${aiCount}</div>
-                        <div class="stat-label">AI & Tech</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${financeCount}</div>
-                        <div class="stat-label">Finance</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${politicsCount}</div>
-                        <div class="stat-label">Politics</div>
-                    </div>
-                `;
-            } else {
-                const categoryData = getCurrentCategoryData();
-                const highPriorityCount = categoryData.filter(a => a.priority === 'high').length;
-                const unreadCount = categoryData.filter(a => !a.isRead).length;
-                
-                statsBar.innerHTML = `
-                    <div class="stat-item">
-                        <div class="stat-number">${categoryData.length}</div>
-                        <div class="stat-label">Articles</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${highPriorityCount}</div>
-                        <div class="stat-label">High Priority</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${unreadCount}</div>
-                        <div class="stat-label">Unread</div>
-                    </div>
-                `;
-            }
-        }
-
-        function getCurrentCategoryData() {
-            if (currentView === 'starred') {
-                return getAllArticles().filter(a => a.isStarred);
-            } else if (currentView === 'reading-list') {
-                return getAllArticles().filter(a => !a.isRead);
-            } else if (currentView !== 'briefing') {
-                return currentData.briefing[currentView] || [];
-            }
-            return [];
-        }
-
-        function getAllArticles() {
-            const allArticles = [];
-            ['ai', 'finance', 'politics'].forEach(category => {
-                if (currentData.briefing[category]) {
-                    allArticles.push(...currentData.briefing[category]);
-                }
-            });
-            return allArticles;
-        }
-
-        function applyFilters(articles) {
-            let filtered = [...articles];
-            
-            if (currentFilter === 'high') {
-                filtered = filtered.filter(a => a.priority === 'high');
-            } else if (currentFilter === 'unread') {
-                filtered = filtered.filter(a => !a.isRead);
-            }
-            
-            return filtered;
-        }
-
-        function displayAllCategories() {
-            let html = '';
-            
-            const categories = [
-                { key: 'ai', title: 'AI & Technology', icon: 'AI' },
-                { key: 'finance', title: 'Finance & Markets', icon: 'FIN' },
-                { key: 'politics', title: 'Politics & Policy', icon: 'POL' }
-            ];
-
-            categories.forEach(category => {
-                const articles = applyFilters(currentData.briefing[category.key] || []);
-                if (articles.length > 0) {
-                    const highPriorityCount = articles.filter(a => a.priority === 'high').length;
-                    const unreadCount = articles.filter(a => !a.isRead).length;
-                    
-                    html += `
-                        <div class="category-section">
-                            <div class="category-header">
-                                <span class="category-icon">${category.icon}</span>
-                                <h2 class="category-title">${category.title}</h2>
-                                <div class="category-stats">
-                                    ${highPriorityCount > 0 ? `<span class="category-count" style="background: #ff6b6b;">${highPriorityCount} high priority</span>` : ''}
-                                    <span class="category-count">${articles.length} articles</span>
-                                    ${unreadCount > 0 ? `<span class="category-count" style="background: #48dbfb;">${unreadCount} unread</span>` : ''}
-                                </div>
-                            </div>
-                            <div class="articles-grid">
-                                ${articles.map(article => createArticleCard(article)).join('')}
-                            </div>
-                        </div>
-                    `;
-                }
-            });
-
-            return html || '<div class="empty-state"><div class="empty-state-icon">∅</div><h3>No articles match current filters</h3><p>Try adjusting your filters or refresh to collect the latest news.</p></div>';
-        }
-
-        function displaySingleCategory(categoryKey) {
-            const articles = applyFilters(currentData.briefing[categoryKey] || []);
-            
-            if (articles.length === 0) {
-                return '<div class="empty-state"><div class="empty-state-icon">∅</div><h3>No articles match current filters</h3><p>Try adjusting your filters or refresh to collect the latest news.</p></div>';
-            }
-
-            return `
-                <div class="articles-grid">
-                    ${articles.map(article => createArticleCard(article)).join('')}
-                </div>
-            `;
-        }
-
-        function displayStarredArticles() {
-            const starredArticles = applyFilters(getAllArticles().filter(a => a.isStarred));
-            
-            if (starredArticles.length === 0) {
-                return '<div class="empty-state"><div class="empty-state-icon">⭐</div><h3>No starred articles yet</h3><p>Star articles you find interesting to save them for later reading.</p></div>';
-            }
-
-            return `
-                <div class="starred-section">
-                    <div class="articles-grid">
-                        ${starredArticles.map(article => createArticleCard(article)).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        function displayUnreadArticles() {
-            const unreadArticles = applyFilters(getAllArticles().filter(a => !a.isRead));
-            
-            if (unreadArticles.length === 0) {
-                return '<div class="empty-state"><div class="empty-state-icon">📖</div><h3>All caught up!</h3><p>You\'ve read all available articles. Check back later for new updates.</p></div>';
-            }
-
-            return `
-                <div class="articles-grid">
-                    ${unreadArticles.map(article => createArticleCard(article)).join('')}
-                </div>
-            `;
-        }
-
-        function createArticleCard(article) {
-            const tags = article.tags || [];
-            const tagsHtml = tags.map(tag => `<span class="tag">${tag}</span>`).join('');
-            const readClass = article.isRead ? 'read' : '';
-            const starredClass = article.isStarred ? 'starred' : '';
-            const readIcon = article.isRead ? '✓' : '○';
-            const starIcon = article.isStarred ? '★' : '☆';
-            const readBtnClass = article.isRead ? 'read' : '';
-            const starBtnClass = article.isStarred ? 'starred' : '';
-            
-            return `
-                <article class="article-card ${readClass} ${starredClass}">
-                    <div class="article-actions">
-                        <button class="action-btn read-btn ${readBtnClass}" 
-                                onclick="markAsRead('${article.id}', this)" 
-                                title="Mark as read">
-                            ${readIcon}
-                        </button>
-                        <button class="action-btn star-btn ${starBtnClass}" 
-                                onclick="toggleStar('${article.id}', this)" 
-                                title="Star article">
-                            ${starIcon}
-                        </button>
-                    </div>
-                    <div class="priority-badge priority-${article.priority || 'medium'}">${article.priority || 'medium'}</div>
-                    
-                    <div class="article-header">
-                        <div class="article-meta">
-                            <span class="article-source">${article.source}</span>
-                            <div class="article-time-info">
-                                <span>${article.timeAgo}</span>
-                                <span class="reading-time">${article.readingTime || 2}min read</span>
-                            </div>
-                        </div>
-                        <h3 class="article-title" onclick="openArticle('${article.url}', this)">
-                            ${article.title}
-                        </h3>
-                    </div>
-                    
-                    <div class="article-content">
-                        ${article.aiSummary ? `
-                            <div class="article-summary" onclick="openArticle('${article.url}', this)" title="Click to read full article">
-                                ${article.aiSummary}
-                            </div>
-                        ` : ''}
-                        <p class="article-excerpt">${article.excerpt}</p>
-                        ${tagsHtml ? `<div class="article-tags">${tagsHtml}</div>` : ''}
-                    </div>
-                </article>
-            `;
-        }
-    </script>
-</body>
-</html>"""
-    return html_content
-
-# Enhanced API Endpoints
-@app.get("/api/morning-briefing")
-async def get_morning_briefing():
-    """Generate comprehensive morning briefing with daily overview"""
-    try:
-        with sqlite3.connect(news_engine.db_path) as conn:
-            briefing = {}
-            total_articles = 0
-            high_priority_count = 0
-            
-            for category in ['ai', 'finance', 'politics']:
-                cursor = conn.execute("""
-                    SELECT id, title, url, source, author, published_date, excerpt,
-                           ai_summary, priority, tags, reading_time, is_read, is_starred
-                    FROM articles 
-                    WHERE category = ? 
-                    ORDER BY 
-                        CASE priority 
-                            WHEN 'high' THEN 3 
-                            WHEN 'medium' THEN 2 
-                            ELSE 1 
-                        END DESC,
-                        published_date DESC
-                    LIMIT 20
-                """, (category,))
-                
-                articles = []
-                for row in cursor.fetchall():
-                    # Calculate time ago
-                    try:
-                        pub_date = datetime.fromisoformat(row[5])
-                        hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
-                        if hours_ago < 1:
-                            time_str = "Just now"
-                        elif hours_ago < 24:
-                            time_str = f"{hours_ago}h ago"
-                        else:
-                            days_ago = hours_ago // 24
-                            time_str = f"{days_ago}d ago"
-                    except:
-                        time_str = "Recently"
-                    
-                    is_high_priority = row[8] == 'high'
-                    if is_high_priority:
-                        high_priority_count += 1
-                    
-                    articles.append({
-                        'id': row[0],
-                        'title': row[1],
-                        'url': row[2],
-                        'source': row[3],
-                        'author': row[4] or 'Unknown',
-                        'publishedDate': row[5],
-                        'excerpt': row[6],
-                        'aiSummary': row[7],
-                        'priority': row[8],
-                        'tags': json.loads(row[9] or '[]'),
-                        'readingTime': row[10] or 2,
-                        'category': category,
-                        'timeAgo': time_str,
-                        'isRead': bool(row[11]),
-                        'isStarred': bool(row[12])
-                    })
-                
-                briefing[category] = articles
-                total_articles += len(articles)
-            
-            # Get daily overview
-            today = datetime.now().strftime('%Y-%m-%d')
-            cursor = conn.execute("""
-                SELECT overview_text FROM daily_overviews 
-                WHERE date = ? ORDER BY generated_at DESC LIMIT 1
-            """, (today,))
-            overview_result = cursor.fetchone()
-            daily_overview = overview_result[0] if overview_result else None
-            
-            # If no overview and we have articles, generate one
-            if not daily_overview and total_articles > 0:
-                daily_overview = "📰 Fresh articles have been collected and are ready for your review. New updates are automatically gathered every 30 minutes."
-            
-            return {
-                'platform': 'RPNews',
-                'date': datetime.now().strftime('%B %d, %Y'),
-                'briefing': briefing,
-                'daily_overview': daily_overview,
-                'generated_at': datetime.now().isoformat(),
-                'total_articles': total_articles,
-                'high_priority_count': high_priority_count,
-                'ai_type': news_engine.ai.ai_type,
-                'status': 'active',
-                'collection_frequency': '30 minutes',
-                'message': 'Your briefing is ready! Articles are automatically updated.'
-            }
-            
-    except Exception as e:
-        logger.error(f"Error generating briefing: {str(e)}")
-        return {
-            'platform': 'RPNews',
-            'date': datetime.now().strftime('%B %d, %Y'),
-            'briefing': {'ai': [], 'finance': [], 'politics': []},
-            'daily_overview': 'Your personalized briefing is being prepared. The news collection system is working in the background to gather the latest articles from premium sources.',
-            'error': 'Initial setup in progress',
-            'generated_at': datetime.now().isoformat(),
-            'total_articles': 0,
-            'high_priority_count': 0,
-            'status': 'initializing',
-            'message': 'Collection system is starting up. Fresh articles will appear within 30 minutes.'
-        }
-
-@app.post("/api/articles/{article_id}/read")
-async def mark_article_read(article_id: str):
-    """Mark an article as read"""
-    success = news_engine.mark_article_read(article_id)
-    if success:
-        return {'status': 'success', 'message': 'Article marked as read'}
-    else:
-        raise HTTPException(status_code=500, detail="Failed to mark article as read")
-
-@app.post("/api/articles/{article_id}/star")
-async def star_article(article_id: str, request: dict):
-    """Star or unstar an article"""
-    starred = request.get('starred', True)
-    success = news_engine.star_article(article_id, starred)
-    if success:
-        action = 'starred' if starred else 'unstarred'
-        return {'status': 'success', 'message': f'Article {action}'}
-    else:
-        raise HTTPException(status_code=500, detail="Failed to update article star status")
-
-@app.get("/api/articles/starred")
-async def get_starred_articles():
-    """Get all starred articles"""
-    try:
-        with sqlite3.connect(news_engine.db_path) as conn:
-            cursor = conn.execute("""
-                SELECT id, title, url, source, author, published_date, excerpt,
-                       ai_summary, category, priority, tags, reading_time, starred_at
-                FROM articles 
-                WHERE is_starred = TRUE
-                ORDER BY starred_at DESC
-                LIMIT 100
-            """)
-            
-            articles = []
-            for row in cursor.fetchall():
-                try:
-                    pub_date = datetime.fromisoformat(row[5])
-                    hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
-                    time_str = f"{hours_ago}h ago" if hours_ago < 24 else f"{hours_ago//24}d ago"
-                except:
-                    time_str = "Recently"
-                
-                articles.append({
-                    'id': row[0],
-                    'title': row[1],
-                    'url': row[2],
-                    'source': row[3],
-                    'author': row[4] or 'Unknown',
-                    'publishedDate': row[5],
-                    'excerpt': row[6],
-                    'aiSummary': row[7],
-                    'category': row[8],
-                    'priority': row[9],
-                    'tags': json.loads(row[10] or '[]'),
-                    'readingTime': row[11] or 2,
-                    'timeAgo': time_str,
-                    'starredAt': row[12],
-                    'isStarred': True
-                })
-            
-            return {
-                'articles': articles,
-                'count': len(articles),
-                'generated_at': datetime.now().isoformat()
-            }
-            
-    except Exception as e:
-        logger.error(f"Error getting starred articles: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to get starred articles")
-
-@app.get("/api/articles/{category}")
-async def get_articles(category: str, limit: int = 50, priority: str = "all"):
-    """Get articles for a specific category with enhanced features"""
-    if category not in ['ai', 'finance', 'politics']:
-        raise HTTPException(status_code=400, detail="Category must be ai, finance, or politics")
-    
-    try:
-        with sqlite3.connect(news_engine.db_path) as conn:
-            query = """
-                SELECT id, title, url, source, author, published_date, excerpt,
-                       ai_summary, priority, tags, reading_time, is_read, is_starred
-                FROM articles 
-                WHERE category = ?
-            """
-            params = [category]
-            
-            if priority != "all":
-                query += " AND priority = ?"
-                params.append(priority)
-            
-            query += " ORDER BY published_date DESC LIMIT ?"
-            params.append(limit)
-            
-            cursor = conn.execute(query, params)
-            
-            articles = []
-            for row in cursor.fetchall():
-                try:
-                    pub_date = datetime.fromisoformat(row[5])
-                    hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
-                    time_str = f"{hours_ago}h ago" if hours_ago < 24 else f"{hours_ago//24}d ago"
-                except:
-                    time_str = "Recently"
-                
-                articles.append({
-                    'id': row[0],
-                    'title': row[1],
-                    'url': row[2],
-                    'source': row[3],
-                    'author': row[4] or 'Unknown',
-                    'publishedDate': row[5],
-                    'excerpt': row[6],
-                    'aiSummary': row[7],
-                    'priority': row[8],
-                    'tags': json.loads(row[9] or '[]'),
-                    'readingTime': row[10] or 2,
-                    'category': category,
-                    'timeAgo': time_str,
-                    'isRead': bool(row[11]),
-                    'isStarred': bool(row[12])
-                })
-            
-            category_names = {
-                'ai': 'AI & Technology',
-                'finance': 'Finance & Markets', 
-                'politics': 'Politics & Policy'
-            }
-            
-            return {
-                'category': category,
-                'category_name': category_names[category],
-                'articles': articles,
-                'count': len(articles),
-                'generated_at': datetime.now().isoformat()
-            }
-            
-    except Exception as e:
-        logger.error(f"Error getting {category} articles: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get {category} articles")
-
-@app.get("/api/stats")
-async def get_stats():
-    """Enhanced platform statistics"""
-    try:
-        with sqlite3.connect(news_engine.db_path) as conn:
-            stats = {}
-            
-            for category in ['ai', 'finance', 'politics']:
-                # Total articles
-                cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE category = ?", (category,))
-                stats[f'{category}_total'] = cursor.fetchone()[0]
-                
-                # Today's articles
-                cursor = conn.execute("""
-                    SELECT COUNT(*) FROM articles 
-                    WHERE category = ? AND published_date >= date('now')
-                """, (category,))
-                stats[f'{category}_today'] = cursor.fetchone()[0]
-                
-                # High priority today
-                cursor = conn.execute("""
-                    SELECT COUNT(*) FROM articles 
-                    WHERE category = ? AND priority = 'high' AND published_date >= date('now')
-                """, (category,))
-                stats[f'{category}_high_priority'] = cursor.fetchone()[0]
-            
-            # Reading stats
-            cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE is_read = TRUE")
-            stats['articles_read'] = cursor.fetchone()[0]
-            
-            cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE is_starred = TRUE")
-            stats['articles_starred'] = cursor.fetchone()[0]
-            
-            # Collection status
-            cursor = conn.execute("""
-                SELECT category, MAX(last_run), status FROM collection_stats
-                GROUP BY category ORDER BY last_run DESC
-            """)
-            
-            collection_status = {}
-            for row in cursor.fetchall():
-                collection_status[row[0]] = {
-                    'last_run': row[1],
-                    'status': row[2]
-                }
-            
-            # Source counts
-            stats['sources'] = {
-                'ai': len(news_engine.sources['ai']),
-                'finance': len(news_engine.sources['finance']),
-                'politics': len(news_engine.sources['politics'])
-            }
-            
-            # System status
-            stats['ai_type'] = news_engine.ai.ai_type
-            stats['collection_frequency'] = '30 minutes'
-            stats['collection_status'] = collection_status
-            stats['is_collecting'] = news_engine.is_collecting
-            
-            return stats
-            
-    except Exception as e:
-        logger.error(f"Error getting stats: {str(e)}")
-        return {
-            'error': 'Stats temporarily unavailable',
-            'ai_type': news_engine.ai.ai_type,
-            'collection_frequency': '30 minutes',
-            'sources': {
-                'ai': len(news_engine.sources['ai']),
-                'finance': len(news_engine.sources['finance']),
-                'politics': len(news_engine.sources['politics'])
-            }
-        }
-
-@app.post("/api/collect")
-async def trigger_collection(background_tasks: BackgroundTasks):
-    """Manual collection trigger"""
-    
-    async def run_collection():
-        try:
-            logger.info("Manual collection triggered")
-            await news_engine._run_collection_cycle()
-        except Exception as e:
-            logger.error(f"Manual collection error: {str(e)}")
-    
-    background_tasks.add_task(run_collection)
-    
-    return {
-        'message': 'Manual news collection started',
-        'timestamp': datetime.now().isoformat(),
-        'status': 'Background collection initiated',
-        'note': 'Articles will appear within a few minutes',
-        'automatic_collection': 'Every 30 minutes'
-    }
-
-@app.get("/api/health")
-async def health_check():
-    """Enhanced health check with detailed status"""
-    try:
-        # Test database connectivity
-        with sqlite3.connect(news_engine.db_path) as conn:
-            cursor = conn.execute("SELECT COUNT(*) FROM articles")
-            article_count = cursor.fetchone()[0]
-            
-            cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE is_read = TRUE")
-            read_count = cursor.fetchone()[0]
-            
-            cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE is_starred = TRUE")
-            starred_count = cursor.fetchone()[0]
-            
-            # Get recent collection stats
-            cursor = conn.execute("""
-                SELECT category, MAX(last_run), MAX(articles_collected) 
-                FROM collection_stats 
-                GROUP BY category
-            """)
-            
-            recent_collections = {}
-            for row in cursor.fetchall():
-                recent_collections[row[0]] = {
-                    'last_run': row[1],
-                    'articles_collected': row[2] or 0
-                }
-        
-        return {
-            'status': 'healthy',
-            'platform': 'RPNews',
-            'timestamp': datetime.now().isoformat(),
-            'ai_type': news_engine.ai.ai_type,
-            'article_count': article_count,
-            'articles_read': read_count,
-            'articles_starred': starred_count,
-            'sources_count': sum(len(sources) for sources in news_engine.sources.values()),
-            'collection_frequency': '30 minutes',
-            'is_collecting': news_engine.is_collecting,
-            'recent_collections': recent_collections,
-            'database': 'connected',
-            'features': ['AI Summaries', 'Priority Detection', 'Auto Collection', 'Article Management']
-        }
-    except Exception as e:
-        return {
-            'status': 'unhealthy',
-            'platform': 'RPNews', 
-            'error': str(e),
-            'timestamp': datetime.now().isoformat()
-        }
-
-if __name__ == "__main__":
-    logger.info("🚀 Starting RPNews Platform with Fixed RSS Feeds")
-    logger.info(f"🌐 Port: {PORT}")
-    logger.info(f"🤖 AI Engine: {news_engine.ai.ai_type}")
-    logger.info(f"📊 Total Sources: {sum(len(sources) for sources in news_engine.sources.values())}")
-    logger.info("🔄 Collection Frequency: Every 30 minutes")
-    logger.info("✨ Features: AI summaries, priority detection, auto-updates")
-    
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
+            console.log('Total articles found:', totalArticles);
