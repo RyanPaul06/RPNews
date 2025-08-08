@@ -1,6 +1,6 @@
 """
-RPNews - Free News Intelligence Platform
-Automatically collects and summarizes news from 60+ sources
+RPNews - Enhanced AI-Powered News Intelligence Platform
+Features: Proper AI summaries, better priority detection, article management
 Deploy to Railway, Render, or Fly.io for free hosting
 """
 
@@ -12,6 +12,7 @@ import logging
 import sqlite3
 import hashlib
 import os
+import re
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
@@ -43,18 +44,86 @@ class NewsArticle:
     category: str
     priority: str
     tags: List[str]
+    reading_time: int
     extracted_at: datetime
 
 class RPNewsAI:
-    """Smart rule-based news summarization for RPNews"""
+    """Advanced AI news analysis with proper summarization"""
     
     def __init__(self):
-        self.ai_type = "enhanced_rules"
-        logger.info("📝 Using enhanced rule-based analysis")
+        self.ai_type = "transformer_based"
+        logger.info("🤖 Initializing transformer-based AI analysis")
+        
+        # Try to load actual AI model, fallback to enhanced rules
+        try:
+            from transformers import pipeline
+            self.summarizer = pipeline(
+                "summarization", 
+                model="facebook/bart-large-cnn",
+                device=-1  # CPU only for deployment
+            )
+            self.ai_available = True
+            logger.info("✅ BART summarization model loaded successfully")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not load transformer model: {e}")
+            logger.info("📝 Falling back to enhanced rule-based analysis")
+            self.summarizer = None
+            self.ai_available = False
+            self.ai_type = "enhanced_rules"
     
     def generate_summary(self, title: str, content: str, category: str) -> str:
-        """Generate intelligent summary using enhanced rules"""
-        return self._smart_rule_summary(title, content, category)
+        """Generate intelligent summary using AI or enhanced rules"""
+        if self.ai_available and self.summarizer and len(content) > 100:
+            return self._ai_summary(title, content, category)
+        else:
+            return self._smart_rule_summary(title, content, category)
+    
+    def _ai_summary(self, title: str, content: str, category: str) -> str:
+        """Generate AI-powered summary using BART model"""
+        try:
+            # Clean and prepare text
+            clean_content = self._clean_text(content)
+            
+            # Truncate to model limits (1024 tokens ≈ 800 words)
+            words = clean_content.split()
+            if len(words) > 800:
+                clean_content = " ".join(words[:800])
+            
+            # Generate summary with appropriate length
+            summary_result = self.summarizer(
+                clean_content,
+                max_length=150,
+                min_length=50,
+                do_sample=False,
+                truncation=True
+            )
+            
+            ai_text = summary_result[0]['summary_text']
+            
+            # Category-specific formatting
+            category_config = {
+                "ai": "🤖 AI Development",
+                "finance": "💰 Market Update", 
+                "politics": "🏛️ Policy Update"
+            }
+            
+            prefix = category_config.get(category, "📰 News Update")
+            
+            return f"{prefix}: {ai_text}"
+            
+        except Exception as e:
+            logger.warning(f"AI summary failed: {e}")
+            return self._smart_rule_summary(title, content, category)
+    
+    def _clean_text(self, text: str) -> str:
+        """Clean text for AI processing"""
+        # Remove HTML remnants
+        text = re.sub(r'<[^>]+>', '', text)
+        # Remove excessive whitespace
+        text = re.sub(r'\s+', ' ', text)
+        # Remove special characters that might confuse the model
+        text = re.sub(r'[^\w\s\.\,\!\?\-\:\;]', '', text)
+        return text.strip()
     
     def _smart_rule_summary(self, title: str, content: str, category: str) -> str:
         """Enhanced rule-based summary with intelligent parsing"""
@@ -63,49 +132,132 @@ class RPNewsAI:
         sentences = content.replace('\n', ' ').split('.')
         important_sentences = []
         
-        # Key phrases that indicate important information
-        key_indicators = [
-            'announces', 'launches', 'reports', 'reveals', 'shows', 'increases', 'decreases',
-            'plans', 'expects', 'breakthrough', 'develops', 'creates', 'discovers', 'raises',
-            'investment', 'funding', 'regulation', 'policy', 'decision', 'statement'
-        ]
+        # Enhanced key phrases by category
+        key_indicators = {
+            'ai': ['announces', 'launches', 'breakthrough', 'develops', 'ai', 'model', 'algorithm', 'machine learning', 'neural', 'artificial intelligence'],
+            'finance': ['reports', 'earnings', 'revenue', 'profit', 'investment', 'funding', 'market', 'stock', 'financial', 'economic', 'fed', 'rate'],
+            'politics': ['policy', 'legislation', 'congress', 'senate', 'president', 'governor', 'election', 'vote', 'political', 'government']
+        }
         
-        for sentence in sentences[:8]:  # Check first 8 sentences
+        category_indicators = key_indicators.get(category, [
+            'announces', 'launches', 'reports', 'reveals', 'shows', 'increases', 'decreases',
+            'plans', 'expects', 'breakthrough', 'develops', 'creates', 'discovers'
+        ])
+        
+        for sentence in sentences[:10]:  # Check first 10 sentences
             sentence = sentence.strip()
-            if len(sentence) > 25 and any(indicator in sentence.lower() for indicator in key_indicators):
-                important_sentences.append(sentence)
+            if len(sentence) > 30:
+                # Score sentence based on keywords and position
+                score = 0
+                sentence_lower = sentence.lower()
+                
+                for indicator in category_indicators:
+                    if indicator in sentence_lower:
+                        score += 2
+                
+                # Boost for numbers, percentages, quotes
+                if re.search(r'\d+%|\$\d+|"\w+', sentence):
+                    score += 1
+                
+                if score >= 2:
+                    important_sentences.append(sentence)
         
         # Fallback to first meaningful sentences
         if not important_sentences:
-            important_sentences = [s.strip() for s in sentences[:3] if len(s.strip()) > 15]
+            important_sentences = [s.strip() for s in sentences[:3] if len(s.strip()) > 20]
         
+        # Create summary from top 2 sentences
         key_info = '. '.join(important_sentences[:2])
         
-        # Category-specific formatting with clean structure
+        # Category-specific formatting
         category_config = {
-            "ai": {
-                "prefix": "AI Development:", 
-                "impact": "Technology Impact: Significant advancement in artificial intelligence sector"
-            },
-            "finance": {
-                "prefix": "Market Update:", 
-                "impact": "Financial Impact: Important development affecting markets and investments"
-            },
-            "politics": {
-                "prefix": "Policy Update:", 
-                "impact": "Political Impact: Government development with broader implications"
-            }
+            "ai": "🤖 AI Development",
+            "finance": "💰 Market Update",
+            "politics": "🏛️ Policy Update"
         }
         
-        config = category_config.get(category, {
-            "prefix": "News Update:", 
-            "impact": "General Impact: Important development requiring attention"
-        })
+        prefix = category_config.get(category, "📰 News Update")
         
-        return f"{config['prefix']} {title}. Details: {key_info}. {config['impact']}"
+        return f"{prefix}: {key_info}."
+    
+    def generate_daily_overview(self, articles_by_category: Dict[str, List]) -> str:
+        """Generate comprehensive daily overview using AI or enhanced rules"""
+        if self.ai_available and self.summarizer:
+            return self._ai_daily_overview(articles_by_category)
+        else:
+            return self._rule_daily_overview(articles_by_category)
+    
+    def _ai_daily_overview(self, articles_by_category: Dict[str, List]) -> str:
+        """AI-powered daily overview generation"""
+        try:
+            # Collect key summaries from each category
+            overview_text = "Today's key developments:\n\n"
+            
+            for category, articles in articles_by_category.items():
+                if not articles:
+                    continue
+                    
+                # Get top 3 high-priority articles
+                top_articles = [a for a in articles if a.get('priority') == 'high'][:3]
+                if not top_articles:
+                    top_articles = articles[:3]
+                
+                summaries = [a.get('aiSummary', a.get('title', '')) for a in top_articles]
+                category_text = " ".join(summaries)
+                
+                if category_text:
+                    overview_text += f"{category.upper()}: {category_text}\n\n"
+            
+            # Generate AI overview
+            if len(overview_text) > 100:
+                summary_result = self.summarizer(
+                    overview_text,
+                    max_length=200,
+                    min_length=80,
+                    do_sample=False,
+                    truncation=True
+                )
+                return summary_result[0]['summary_text']
+            
+        except Exception as e:
+            logger.warning(f"AI daily overview failed: {e}")
+        
+        return self._rule_daily_overview(articles_by_category)
+    
+    def _rule_daily_overview(self, articles_by_category: Dict[str, List]) -> str:
+        """Rule-based daily overview generation"""
+        overview_parts = []
+        
+        category_summaries = {
+            'ai': "📱 Technology developments",
+            'finance': "💰 Market movements", 
+            'politics': "🏛️ Policy updates"
+        }
+        
+        for category, articles in articles_by_category.items():
+            if not articles:
+                continue
+                
+            high_priority_count = len([a for a in articles if a.get('priority') == 'high'])
+            total_count = len(articles)
+            
+            category_name = category_summaries.get(category, f"{category} updates")
+            
+            if high_priority_count > 0:
+                overview_parts.append(f"{category_name}: {high_priority_count} major developments, {total_count} total articles")
+            else:
+                overview_parts.append(f"{category_name}: {total_count} articles to review")
+        
+        if not overview_parts:
+            return "📰 Your daily briefing is being prepared. Check back in a few minutes for the latest updates."
+        
+        overview = "🌅 Today's Intelligence Overview: " + "; ".join(overview_parts)
+        overview += f". Total articles for review: {sum(len(articles) for articles in articles_by_category.values())}."
+        
+        return overview
 
 class RPNewsEngine:
-    """Core news intelligence engine for RPNews"""
+    """Enhanced news intelligence engine"""
     
     def __init__(self, db_path: str = "rpnews.db"):
         self.db_path = db_path
@@ -114,7 +266,7 @@ class RPNewsEngine:
         self.sources = self._initialize_sources()
         self._setup_database()
         self.background_task = None
-        logger.info("📰 RPNews Engine initialized")
+        logger.info("📰 Enhanced RPNews Engine initialized")
     
     def start_background_collection(self):
         """Start background collection task"""
@@ -222,7 +374,7 @@ class RPNewsEngine:
         }
     
     def _setup_database(self):
-        """Setup SQLite database for article storage"""
+        """Setup enhanced SQLite database"""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS articles (
@@ -238,7 +390,12 @@ class RPNewsEngine:
                     category TEXT,
                     priority TEXT,
                     tags TEXT,
-                    extracted_at TIMESTAMP
+                    reading_time INTEGER DEFAULT 0,
+                    extracted_at TIMESTAMP,
+                    is_read BOOLEAN DEFAULT FALSE,
+                    is_starred BOOLEAN DEFAULT FALSE,
+                    read_at TIMESTAMP,
+                    starred_at TIMESTAMP
                 )
             """)
             
@@ -252,36 +409,120 @@ class RPNewsEngine:
                 )
             """)
             
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS daily_overviews (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT UNIQUE,
+                    overview_text TEXT,
+                    total_articles INTEGER,
+                    high_priority_count INTEGER,
+                    generated_at TIMESTAMP
+                )
+            """)
+            
             # Performance indexes
             conn.execute("CREATE INDEX IF NOT EXISTS idx_category ON articles(category)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_published ON articles(published_date)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_priority ON articles(priority)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_read_starred ON articles(is_read, is_starred)")
+    
+    def _calculate_priority(self, title: str, content: str, source_priority: str, category: str) -> str:
+        """Enhanced priority detection based on content analysis"""
+        priority_score = 0
+        text = f"{title} {content}".lower()
+        
+        # Base score from source priority
+        priority_base = {"high": 3, "medium": 2, "low": 1}
+        priority_score = priority_base.get(source_priority, 2)
+        
+        # Category-specific high-priority indicators
+        high_priority_terms = {
+            'ai': [
+                'breakthrough', 'released', 'announces', 'launches', 'gpt-', 'claude',
+                'funding round', 'acquisition', 'partnership', 'regulation', 'banned',
+                'agi', 'superintelligence', '$', 'billion', 'million funding'
+            ],
+            'finance': [
+                'fed decision', 'interest rate', 'inflation', 'recession', 'crash',
+                'bank failure', 'earnings beat', 'guidance', 'outlook', 'upgraded',
+                'downgraded', 'merger', 'acquisition', 'ipo', 'bankruptcy'
+            ],
+            'politics': [
+                'breaking', 'urgent', 'senate votes', 'house passes', 'president',
+                'supreme court', 'indictment', 'investigation', 'scandal',
+                'election results', 'poll', 'debate', 'resignation', 'appointed'
+            ]
+        }
+        
+        category_terms = high_priority_terms.get(category, [])
+        
+        # Count high-priority term matches
+        term_matches = sum(1 for term in category_terms if term in text)
+        priority_score += min(term_matches * 0.5, 2)  # Max 2 bonus points
+        
+        # Boost for numbers/percentages (usually important data)
+        if re.search(r'\d+%|\$\d+\.?\d*[bmk]|\d+\.\d+%', text):
+            priority_score += 0.5
+        
+        # Boost for urgency words
+        urgency_terms = ['breaking', 'urgent', 'just in', 'developing', 'alert']
+        if any(term in text for term in urgency_terms):
+            priority_score += 1
+        
+        # Determine final priority
+        if priority_score >= 4:
+            return "high"
+        elif priority_score >= 2.5:
+            return "medium"
+        else:
+            return "low"
+    
+    def _calculate_reading_time(self, content: str) -> int:
+        """Calculate estimated reading time in minutes"""
+        words = len(content.split())
+        # Average reading speed: 200 words per minute
+        minutes = max(1, round(words / 200))
+        return min(minutes, 15)  # Cap at 15 minutes
     
     async def background_collection(self):
-        """Continuous background news collection"""
-        await asyncio.sleep(60)  # Wait for startup
+        """Enhanced background collection with initial startup collection"""
+        logger.info("🚀 Starting initial news collection...")
         
+        # Initial collection on startup
+        try:
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=45),
+                headers={'User-Agent': 'RPNews/2.0 (+https://rpnews.com)'}
+            ) as session:
+                self.session = session
+                await self.collect_all_news()
+                self.session = None
+            logger.info("✅ Initial collection completed")
+        except Exception as e:
+            logger.error(f"Initial collection error: {e}")
+        
+        # Continue with regular collection cycle
         while True:
             try:
+                await asyncio.sleep(3600)  # Wait 1 hour
+                
                 logger.info("🔄 Background collection starting...")
                 async with aiohttp.ClientSession(
                     timeout=aiohttp.ClientTimeout(total=30),
-                    headers={'User-Agent': 'RPNews/1.0 (+https://rpnews.com)'}
+                    headers={'User-Agent': 'RPNews/2.0 (+https://rpnews.com)'}
                 ) as session:
                     self.session = session
                     await self.collect_all_news()
                     self.session = None
                 
-                # Wait 1 hour before next collection
                 logger.info("✅ Background collection complete. Next run in 1 hour.")
-                await asyncio.sleep(3600)
                 
             except Exception as e:
                 logger.error(f"Background collection error: {str(e)}")
                 await asyncio.sleep(600)  # Wait 10 minutes on error
     
     async def collect_all_news(self):
-        """Collect news from all categories"""
+        """Enhanced news collection with better processing"""
         total_articles = 0
         
         for category in ['ai', 'finance', 'politics']:
@@ -300,11 +541,67 @@ class RPNewsEngine:
             except Exception as e:
                 logger.error(f"Error collecting {category}: {str(e)}")
         
+        # Generate daily overview after collection
+        await self._generate_daily_overview()
+        
         logger.info(f"✅ Total articles collected: {total_articles}")
         return total_articles
     
+    async def _generate_daily_overview(self):
+        """Generate and store daily overview"""
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        try:
+            # Get today's articles by category
+            articles_by_category = {}
+            
+            with sqlite3.connect(self.db_path) as conn:
+                for category in ['ai', 'finance', 'politics']:
+                    cursor = conn.execute("""
+                        SELECT title, ai_summary, priority FROM articles 
+                        WHERE category = ? AND date(published_date) = date('now')
+                        ORDER BY 
+                            CASE priority 
+                                WHEN 'high' THEN 3 
+                                WHEN 'medium' THEN 2 
+                                ELSE 1 
+                            END DESC
+                        LIMIT 10
+                    """, (category,))
+                    
+                    articles = []
+                    for row in cursor.fetchall():
+                        articles.append({
+                            'title': row[0],
+                            'aiSummary': row[1],
+                            'priority': row[2]
+                        })
+                    
+                    articles_by_category[category] = articles
+                
+                # Generate overview
+                overview_text = self.ai.generate_daily_overview(articles_by_category)
+                
+                total_articles = sum(len(articles) for articles in articles_by_category.values())
+                high_priority_count = sum(
+                    len([a for a in articles if a.get('priority') == 'high']) 
+                    for articles in articles_by_category.values()
+                )
+                
+                # Store overview
+                conn.execute("""
+                    INSERT OR REPLACE INTO daily_overviews 
+                    (date, overview_text, total_articles, high_priority_count, generated_at)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (today, overview_text, total_articles, high_priority_count, datetime.now()))
+                
+                logger.info(f"📊 Daily overview generated: {total_articles} articles, {high_priority_count} high priority")
+                
+        except Exception as e:
+            logger.error(f"Error generating daily overview: {e}")
+    
     async def collect_category(self, category: str) -> int:
-        """Collect articles for one category"""
+        """Enhanced category collection with better AI processing"""
         sources = self.sources.get(category, [])
         total_articles = 0
         
@@ -326,7 +623,7 @@ class RPNewsEngine:
         return total_articles
     
     async def fetch_rss_feed(self, source: Dict[str, str], category: str) -> List[NewsArticle]:
-        """Fetch and process RSS feed"""
+        """Enhanced RSS feed processing with better content extraction"""
         articles = []
         
         try:
@@ -337,7 +634,7 @@ class RPNewsEngine:
                 content = await response.text()
                 feed = feedparser.parse(content)
                 
-                for entry in feed.entries[:12]:  # Limit per source
+                for entry in feed.entries[:15]:  # Increased limit per source
                     try:
                         article_id = hashlib.md5(entry.link.encode()).hexdigest()
                         
@@ -359,9 +656,15 @@ class RPNewsEngine:
                             soup = BeautifulSoup(content, 'html.parser')
                             content = soup.get_text().strip()
                         
+                        # Enhanced priority detection
+                        priority = self._calculate_priority(entry.title, content, source['priority'], category)
+                        
+                        # Calculate reading time
+                        reading_time = self._calculate_reading_time(content)
+                        
                         # Generate excerpt and AI summary
-                        excerpt = content[:350] + "..." if len(content) > 350 else content
-                        ai_summary = self.ai.generate_summary(entry.title, content[:1200], category)
+                        excerpt = content[:400] + "..." if len(content) > 400 else content
+                        ai_summary = self.ai.generate_summary(entry.title, content[:2000], category)
                         
                         # Extract tags
                         tags = self._extract_tags(entry.title, content, category)
@@ -377,8 +680,9 @@ class RPNewsEngine:
                             excerpt=excerpt,
                             ai_summary=ai_summary,
                             category=category,
-                            priority=source['priority'],
+                            priority=priority,
                             tags=tags,
+                            reading_time=reading_time,
                             extracted_at=datetime.now()
                         )
                         
@@ -399,65 +703,101 @@ class RPNewsEngine:
             return cursor.fetchone() is not None
     
     def _extract_tags(self, title: str, content: str, category: str) -> List[str]:
-        """Extract relevant tags from content"""
+        """Enhanced tag extraction with better categorization"""
         text = f"{title} {content}".lower()
         tags = []
         
         # Category-specific tag extraction
         if category == "ai":
             ai_terms = {
-                'gpt': ['gpt', 'chatgpt'],
+                'gpt': ['gpt', 'chatgpt', 'gpt-4', 'gpt-3'],
                 'llm': ['language model', 'llm', 'large language'],
-                'ml': ['machine learning', 'deep learning'],
-                'startup': ['startup', 'funding', 'investment'],
-                'research': ['paper', 'research', 'arxiv', 'study']
+                'ml': ['machine learning', 'deep learning', 'neural network'],
+                'startup': ['startup', 'funding', 'investment', 'series a', 'series b'],
+                'research': ['paper', 'research', 'arxiv', 'study', 'journal'],
+                'robotics': ['robot', 'robotics', 'autonomous'],
+                'computer_vision': ['computer vision', 'image recognition', 'cv'],
+                'nlp': ['natural language', 'nlp', 'text processing'],
+                'ethics': ['ethics', 'bias', 'fairness', 'responsible ai']
             }
-            
-            for tag, keywords in ai_terms.items():
-                if any(keyword in text for keyword in keywords):
-                    tags.append(tag)
-        
         elif category == "finance":
-            finance_terms = {
-                'crypto': ['bitcoin', 'cryptocurrency', 'crypto'],
-                'stocks': ['stock', 'equity', 'shares'],
-                'fed': ['federal reserve', 'fed', 'interest rate'],
-                'market': ['market', 'trading']
+            ai_terms = {
+                'crypto': ['bitcoin', 'cryptocurrency', 'crypto', 'ethereum'],
+                'stocks': ['stock', 'equity', 'shares', 'nasdaq', 'sp500'],
+                'fed': ['federal reserve', 'fed', 'interest rate', 'fomc'],
+                'market': ['market', 'trading', 'dow jones'],
+                'banking': ['bank', 'banking', 'credit', 'loan'],
+                'inflation': ['inflation', 'cpi', 'consumer price'],
+                'earnings': ['earnings', 'revenue', 'profit', 'quarterly'],
+                'ipo': ['ipo', 'public offering', 'listing'],
+                'merger': ['merger', 'acquisition', 'm&a']
+            }
+        else:  # politics
+            ai_terms = {
+                'congress': ['congress', 'senate', 'house', 'representatives'],
+                'election': ['election', 'vote', 'campaign', 'ballot'],
+                'policy': ['policy', 'legislation', 'bill', 'law'],
+                'international': ['international', 'foreign', 'diplomatic'],
+                'supreme_court': ['supreme court', 'scotus', 'judicial'],
+                'presidency': ['president', 'white house', 'administration'],
+                'healthcare': ['healthcare', 'medicare', 'medicaid'],
+                'economy': ['economic', 'fiscal', 'budget'],
+                'climate': ['climate', 'environmental', 'green energy']
             }
             
-            for tag, keywords in finance_terms.items():
-                if any(keyword in text for keyword in keywords):
-                    tags.append(tag)
+        for tag, keywords in ai_terms.items():
+            if any(keyword in text for keyword in keywords):
+                tags.append(tag)
         
-        elif category == "politics":
-            politics_terms = {
-                'congress': ['congress', 'senate', 'house'],
-                'election': ['election', 'vote', 'campaign'],
-                'policy': ['policy', 'legislation', 'bill']
-            }
-            
-            for tag, keywords in politics_terms.items():
-                if any(keyword in text for keyword in keywords):
-                    tags.append(tag)
-        
-        return tags[:6]  # Limit to 6 tags
+        return tags[:8]  # Limit to 8 tags
     
     def save_article(self, article: NewsArticle):
-        """Save article to database"""
+        """Enhanced article saving with new fields"""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("""
                 INSERT OR REPLACE INTO articles 
                 (id, title, url, source, author, published_date, content, excerpt,
-                 ai_summary, category, priority, tags, extracted_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 ai_summary, category, priority, tags, reading_time, extracted_at,
+                 is_read, is_starred)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, FALSE)
             """, (
                 article.id, article.title, article.url, article.source, article.author,
                 article.published_date, article.content, article.excerpt, article.ai_summary,
-                article.category, article.priority, json.dumps(article.tags), article.extracted_at
+                article.category, article.priority, json.dumps(article.tags), 
+                article.reading_time, article.extracted_at
             ))
+    
+    def mark_article_read(self, article_id: str) -> bool:
+        """Mark article as read"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    UPDATE articles 
+                    SET is_read = TRUE, read_at = ? 
+                    WHERE id = ?
+                """, (datetime.now(), article_id))
+                return True
+        except Exception as e:
+            logger.error(f"Error marking article read: {e}")
+            return False
+    
+    def star_article(self, article_id: str, starred: bool = True) -> bool:
+        """Star or unstar an article"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                starred_at = datetime.now() if starred else None
+                conn.execute("""
+                    UPDATE articles 
+                    SET is_starred = ?, starred_at = ? 
+                    WHERE id = ?
+                """, (starred, starred_at, article_id))
+                return True
+        except Exception as e:
+            logger.error(f"Error starring article: {e}")
+            return False
 
 # Initialize FastAPI application
-app = FastAPI(title="RPNews - Free News Intelligence Platform", version="1.0.0")
+app = FastAPI(title="RPNews - Enhanced AI News Intelligence", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -467,25 +807,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize the news engine
+# Initialize the enhanced news engine
 news_engine = RPNewsEngine()
 
 @app.on_event("startup")
 async def startup_event():
     """Start background tasks when FastAPI starts"""
-    logger.info("🚀 FastAPI startup - starting background collection")
+    logger.info("🚀 Enhanced FastAPI startup - starting background collection")
     news_engine.start_background_collection()
 
-# Main professional news dashboard
+# Enhanced professional news dashboard
 @app.get("/", response_class=HTMLResponse)
 async def dashboard():
-    """Professional news intelligence dashboard"""
+    """Enhanced professional news intelligence dashboard"""
     html_content = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPNews - Professional News Intelligence</title>
+    <title>RPNews - Enhanced News Intelligence</title>
     <style>
         * {
             margin: 0;
@@ -560,23 +900,36 @@ async def dashboard():
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
         
-        .refresh-btn {
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .control-btn {
             background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
+            padding: 10px 16px;
+            border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+            font-size: 0.9em;
         }
         
-        .refresh-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        .control-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
+        }
+        
+        .control-btn.secondary {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            border: 1px solid rgba(102, 126, 234, 0.3);
         }
         
         .container {
@@ -587,7 +940,7 @@ async def dashboard():
         
         .briefing-header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             background: rgba(255, 255, 255, 0.9);
             padding: 30px;
             border-radius: 20px;
@@ -606,6 +959,28 @@ async def dashboard():
             color: #667eea;
             font-size: 1.2em;
             font-weight: 500;
+            margin-bottom: 20px;
+        }
+        
+        .daily-overview {
+            background: linear-gradient(135deg, #f8f9ff, #e8ecff);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+            margin-bottom: 20px;
+            font-size: 1.05em;
+            line-height: 1.7;
+            color: #2c3e50;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+        
+        .overview-title {
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .stats-bar {
@@ -618,9 +993,10 @@ async def dashboard():
         
         .stat-item {
             text-align: center;
-            padding: 10px 20px;
+            padding: 12px 20px;
             background: rgba(102, 126, 234, 0.1);
             border-radius: 12px;
+            min-width: 100px;
         }
         
         .stat-number {
@@ -632,6 +1008,37 @@ async def dashboard():
         .stat-label {
             font-size: 0.9em;
             color: #7f8c8d;
+        }
+        
+        .view-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
         }
         
         .category-section {
@@ -664,6 +1071,12 @@ async def dashboard():
             font-size: 1.8em;
             font-weight: 700;
             color: #2c3e50;
+            flex: 1;
+        }
+        
+        .category-stats {
+            display: flex;
+            gap: 15px;
         }
         
         .category-count {
@@ -689,11 +1102,20 @@ async def dashboard():
             transition: all 0.3s ease;
             border: 1px solid rgba(102, 126, 234, 0.1);
             position: relative;
+            opacity: 1;
         }
         
         .article-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .article-card.read {
+            opacity: 0.7;
+        }
+        
+        .article-card.starred {
+            border-left: 4px solid #ffd700;
         }
         
         .article-header {
@@ -714,30 +1136,20 @@ async def dashboard():
             font-size: 0.9em;
         }
         
-        .article-time {
-            color: #95a5a6;
-            font-size: 0.85em;
+        .article-time-info {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 10px;
+            color: #95a5a6;
+            font-size: 0.85em;
         }
         
-        .time-icon {
-            width: 12px;
-            height: 12px;
-            border: 1px solid #95a5a6;
-            border-radius: 50%;
-            position: relative;
-        }
-        
-        .time-icon::after {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 5px;
-            width: 1px;
-            height: 4px;
-            background: #95a5a6;
+        .reading-time {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
         }
         
         .priority-badge {
@@ -772,16 +1184,48 @@ async def dashboard():
             color: #2c3e50;
             line-height: 1.4;
             margin-bottom: 15px;
-        }
-        
-        .article-title a {
-            color: inherit;
-            text-decoration: none;
+            cursor: pointer;
             transition: color 0.3s ease;
         }
         
-        .article-title a:hover {
+        .article-title:hover {
             color: #667eea;
+        }
+        
+        .article-actions {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 5px;
+        }
+        
+        .action-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+            color: #666;
+        }
+        
+        .action-btn:hover {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .action-btn.read {
+            color: #28a745;
+        }
+        
+        .action-btn.starred {
+            color: #ffd700;
         }
         
         .article-content {
@@ -796,6 +1240,13 @@ async def dashboard():
             border-left: 4px solid #667eea;
             font-size: 0.95em;
             line-height: 1.5;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .article-summary:hover {
+            background: linear-gradient(135deg, #f0f4ff, #e8ecff);
+            transform: translateX(2px);
         }
         
         .article-excerpt {
@@ -853,6 +1304,10 @@ async def dashboard():
             font-weight: 300;
         }
         
+        .starred-section {
+            margin-bottom: 40px;
+        }
+        
         @media (max-width: 768px) {
             .nav-container {
                 flex-direction: column;
@@ -873,6 +1328,12 @@ async def dashboard():
                 font-size: 0.9em;
             }
             
+            .controls {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
             .briefing-title {
                 font-size: 2em;
             }
@@ -887,10 +1348,12 @@ async def dashboard():
             
             .category-header {
                 padding: 15px 20px;
+                flex-wrap: wrap;
             }
             
-            .article-card {
-                margin-bottom: 20px;
+            .view-controls {
+                flex-direction: column;
+                align-items: flex-start;
             }
         }
         
@@ -907,31 +1370,49 @@ async def dashboard():
 <body>
     <header class="header">
         <div class="nav-container">
-            <div class="logo">RPNews</div>
+            <div class="logo">RPNews Enhanced</div>
             <div class="nav-tabs">
-                <button class="nav-tab active" data-view="briefing">Morning Briefing</button>
+                <button class="nav-tab active" data-view="briefing">Daily Briefing</button>
                 <button class="nav-tab" data-view="ai">AI & Technology</button>
                 <button class="nav-tab" data-view="finance">Finance & Markets</button>
                 <button class="nav-tab" data-view="politics">Politics & Policy</button>
+                <button class="nav-tab" data-view="starred">⭐ Starred</button>
             </div>
-            <button class="refresh-btn" onclick="refreshNews()">
-                <span id="refresh-icon">↻</span> Refresh
-            </button>
+            <div class="controls">
+                <button class="control-btn secondary" data-view="reading-list">📖 Reading List</button>
+                <button class="control-btn" onclick="refreshNews()">
+                    <span id="refresh-icon">↻</span> Refresh
+                </button>
+            </div>
         </div>
     </header>
 
     <div class="container">
         <div id="loading" class="loading">
             <div class="loading-spinner"></div>
-            <h3>Loading your news intelligence...</h3>
-            <p>Gathering the latest updates from 60+ premium sources</p>
+            <h3>Loading enhanced news intelligence...</h3>
+            <p>Processing articles with AI summaries from 60+ premium sources</p>
         </div>
 
         <div id="content" style="display: none;">
             <div class="briefing-header">
-                <h1 class="briefing-title">Your Daily Intelligence Briefing</h1>
+                <h1 class="briefing-title">Enhanced Daily Intelligence Briefing</h1>
                 <p class="briefing-date" id="briefing-date"></p>
+                
+                <div id="daily-overview" class="daily-overview" style="display: none;">
+                    <div class="overview-title">🌅 Daily Overview</div>
+                    <div id="overview-text"></div>
+                </div>
+                
                 <div class="stats-bar" id="stats-bar"></div>
+            </div>
+
+            <div class="view-controls">
+                <div class="filter-controls">
+                    <button class="filter-btn active" data-filter="all">All Priority</button>
+                    <button class="filter-btn" data-filter="high">High Priority</button>
+                    <button class="filter-btn" data-filter="unread">Unread Only</button>
+                </div>
             </div>
 
             <div id="news-content"></div>
@@ -941,11 +1422,13 @@ async def dashboard():
     <script>
         let currentData = null;
         let currentView = 'briefing';
+        let currentFilter = 'all';
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             loadBriefing();
             setupNavigation();
+            setupFilters();
         });
 
         function setupNavigation() {
@@ -957,6 +1440,20 @@ async def dashboard():
                     
                     // Switch view
                     currentView = this.dataset.view;
+                    if (currentData) {
+                        displayContent();
+                    }
+                });
+            });
+        }
+
+        function setupFilters() {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    currentFilter = this.dataset.filter;
                     if (currentData) {
                         displayContent();
                     }
@@ -988,11 +1485,60 @@ async def dashboard():
                 setTimeout(async () => {
                     await loadBriefing();
                     refreshIcon.style.animation = 'none';
-                }, 3000);
+                }, 5000);
             } catch (error) {
                 console.error('Error refreshing:', error);
                 refreshIcon.style.animation = 'none';
             }
+        }
+
+        async function markAsRead(articleId, element) {
+            try {
+                const response = await fetch(`/api/articles/${articleId}/read`, { method: 'POST' });
+                if (response.ok) {
+                    element.closest('.article-card').classList.add('read');
+                    const btn = element.closest('.article-card').querySelector('.read-btn');
+                    btn.classList.add('read');
+                    btn.innerHTML = '✓';
+                }
+            } catch (error) {
+                console.error('Error marking as read:', error);
+            }
+        }
+
+        async function toggleStar(articleId, element) {
+            try {
+                const card = element.closest('.article-card');
+                const isStarred = card.classList.contains('starred');
+                
+                const response = await fetch(`/api/articles/${articleId}/star`, { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ starred: !isStarred })
+                });
+                
+                if (response.ok) {
+                    if (isStarred) {
+                        card.classList.remove('starred');
+                        element.innerHTML = '☆';
+                        element.classList.remove('starred');
+                    } else {
+                        card.classList.add('starred');
+                        element.innerHTML = '★';
+                        element.classList.add('starred');
+                    }
+                }
+            } catch (error) {
+                console.error('Error toggling star:', error);
+            }
+        }
+
+        function openArticle(url, summaryElement) {
+            // Mark the summary as clicked (visual feedback)
+            summaryElement.style.background = 'linear-gradient(135deg, #e8ecff, #d4e3ff)';
+            
+            // Open article in new tab
+            window.open(url, '_blank', 'noopener,noreferrer');
         }
 
         function showLoading() {
@@ -1027,18 +1573,52 @@ async def dashboard():
             // Update header
             document.getElementById('briefing-date').textContent = currentData.date;
             
+            // Show daily overview if available
+            const overviewDiv = document.getElementById('daily-overview');
+            const overviewText = document.getElementById('overview-text');
+            if (currentData.daily_overview && currentView === 'briefing') {
+                overviewText.textContent = currentData.daily_overview;
+                overviewDiv.style.display = 'block';
+            } else {
+                overviewDiv.style.display = 'none';
+            }
+            
             // Update stats
+            updateStatsBar();
+            
+            // Display articles
+            const contentDiv = document.getElementById('news-content');
+            contentDiv.className = 'fade-in';
+            
+            if (currentView === 'briefing') {
+                contentDiv.innerHTML = displayAllCategories();
+            } else if (currentView === 'starred') {
+                contentDiv.innerHTML = displayStarredArticles();
+            } else if (currentView === 'reading-list') {
+                contentDiv.innerHTML = displayUnreadArticles();
+            } else {
+                contentDiv.innerHTML = displaySingleCategory(currentView);
+            }
+        }
+
+        function updateStatsBar() {
             const statsBar = document.getElementById('stats-bar');
+            
             if (currentView === 'briefing') {
                 const totalArticles = currentData.total_articles || 0;
                 const aiCount = currentData.briefing.ai?.length || 0;
                 const financeCount = currentData.briefing.finance?.length || 0;
                 const politicsCount = currentData.briefing.politics?.length || 0;
+                const highPriorityCount = currentData.high_priority_count || 0;
                 
                 statsBar.innerHTML = `
                     <div class="stat-item">
                         <div class="stat-number">${totalArticles}</div>
                         <div class="stat-label">Total Articles</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${highPriorityCount}</div>
+                        <div class="stat-label">High Priority</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-number">${aiCount}</div>
@@ -1054,24 +1634,58 @@ async def dashboard():
                     </div>
                 `;
             } else {
-                const categoryData = currentData.briefing[currentView] || [];
+                const categoryData = getCurrentCategoryData();
+                const highPriorityCount = categoryData.filter(a => a.priority === 'high').length;
+                const unreadCount = categoryData.filter(a => !a.isRead).length;
+                
                 statsBar.innerHTML = `
                     <div class="stat-item">
                         <div class="stat-number">${categoryData.length}</div>
-                        <div class="stat-label">Articles Found</div>
+                        <div class="stat-label">Articles</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${highPriorityCount}</div>
+                        <div class="stat-label">High Priority</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${unreadCount}</div>
+                        <div class="stat-label">Unread</div>
                     </div>
                 `;
             }
+        }
 
-            // Display articles
-            const contentDiv = document.getElementById('news-content');
-            contentDiv.className = 'fade-in';
-            
-            if (currentView === 'briefing') {
-                contentDiv.innerHTML = displayAllCategories();
-            } else {
-                contentDiv.innerHTML = displaySingleCategory(currentView);
+        function getCurrentCategoryData() {
+            if (currentView === 'starred') {
+                return getAllArticles().filter(a => a.isStarred);
+            } else if (currentView === 'reading-list') {
+                return getAllArticles().filter(a => !a.isRead);
+            } else if (currentView !== 'briefing') {
+                return currentData.briefing[currentView] || [];
             }
+            return [];
+        }
+
+        function getAllArticles() {
+            const allArticles = [];
+            ['ai', 'finance', 'politics'].forEach(category => {
+                if (currentData.briefing[category]) {
+                    allArticles.push(...currentData.briefing[category]);
+                }
+            });
+            return allArticles;
+        }
+
+        function applyFilters(articles) {
+            let filtered = [...articles];
+            
+            if (currentFilter === 'high') {
+                filtered = filtered.filter(a => a.priority === 'high');
+            } else if (currentFilter === 'unread') {
+                filtered = filtered.filter(a => !a.isRead);
+            }
+            
+            return filtered;
         }
 
         function displayAllCategories() {
@@ -1084,14 +1698,21 @@ async def dashboard():
             ];
 
             categories.forEach(category => {
-                const articles = currentData.briefing[category.key] || [];
+                const articles = applyFilters(currentData.briefing[category.key] || []);
                 if (articles.length > 0) {
+                    const highPriorityCount = articles.filter(a => a.priority === 'high').length;
+                    const unreadCount = articles.filter(a => !a.isRead).length;
+                    
                     html += `
                         <div class="category-section">
                             <div class="category-header">
                                 <span class="category-icon">${category.icon}</span>
                                 <h2 class="category-title">${category.title}</h2>
-                                <span class="category-count">${articles.length} articles</span>
+                                <div class="category-stats">
+                                    ${highPriorityCount > 0 ? `<span class="category-count" style="background: #ff6b6b;">${highPriorityCount} high priority</span>` : ''}
+                                    <span class="category-count">${articles.length} articles</span>
+                                    ${unreadCount > 0 ? `<span class="category-count" style="background: #48dbfb;">${unreadCount} unread</span>` : ''}
+                                </div>
                             </div>
                             <div class="articles-grid">
                                 ${articles.map(article => createArticleCard(article)).join('')}
@@ -1101,14 +1722,14 @@ async def dashboard():
                 }
             });
 
-            return html || '<div class="empty-state"><div class="empty-state-icon">∅</div><h3>No articles available</h3><p>Try refreshing to collect the latest news.</p></div>';
+            return html || '<div class="empty-state"><div class="empty-state-icon">∅</div><h3>No articles match current filters</h3><p>Try adjusting your filters or refresh to collect the latest news.</p></div>';
         }
 
         function displaySingleCategory(categoryKey) {
-            const articles = currentData.briefing[categoryKey] || [];
+            const articles = applyFilters(currentData.briefing[categoryKey] || []);
             
             if (articles.length === 0) {
-                return '<div class="empty-state"><div class="empty-state-icon">∅</div><h3>No articles available</h3><p>Try refreshing to collect the latest news.</p></div>';
+                return '<div class="empty-state"><div class="empty-state-icon">∅</div><h3>No articles match current filters</h3><p>Try adjusting your filters or refresh to collect the latest news.</p></div>';
             }
 
             return `
@@ -1118,26 +1739,81 @@ async def dashboard():
             `;
         }
 
+        function displayStarredArticles() {
+            const starredArticles = applyFilters(getAllArticles().filter(a => a.isStarred));
+            
+            if (starredArticles.length === 0) {
+                return '<div class="empty-state"><div class="empty-state-icon">⭐</div><h3>No starred articles yet</h3><p>Star articles you find interesting to save them for later reading.</p></div>';
+            }
+
+            return `
+                <div class="starred-section">
+                    <div class="articles-grid">
+                        ${starredArticles.map(article => createArticleCard(article)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayUnreadArticles() {
+            const unreadArticles = applyFilters(getAllArticles().filter(a => !a.isRead));
+            
+            if (unreadArticles.length === 0) {
+                return '<div class="empty-state"><div class="empty-state-icon">📖</div><h3>All caught up!</h3><p>You\'ve read all available articles. Check back later for new updates.</p></div>';
+            }
+
+            return `
+                <div class="articles-grid">
+                    ${unreadArticles.map(article => createArticleCard(article)).join('')}
+                </div>
+            `;
+        }
+
         function createArticleCard(article) {
             const tags = article.tags || [];
             const tagsHtml = tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+            const readClass = article.isRead ? 'read' : '';
+            const starredClass = article.isStarred ? 'starred' : '';
+            const readIcon = article.isRead ? '✓' : '○';
+            const starIcon = article.isStarred ? '★' : '☆';
+            const readBtnClass = article.isRead ? 'read' : '';
+            const starBtnClass = article.isStarred ? 'starred' : '';
             
             return `
-                <article class="article-card">
+                <article class="article-card ${readClass} ${starredClass}">
+                    <div class="article-actions">
+                        <button class="action-btn read-btn ${readBtnClass}" 
+                                onclick="markAsRead('${article.id}', this)" 
+                                title="Mark as read">
+                            ${readIcon}
+                        </button>
+                        <button class="action-btn star-btn ${starBtnClass}" 
+                                onclick="toggleStar('${article.id}', this)" 
+                                title="Star article">
+                            ${starIcon}
+                        </button>
+                    </div>
                     <div class="priority-badge priority-${article.priority || 'medium'}">${article.priority || 'medium'}</div>
+                    
                     <div class="article-header">
                         <div class="article-meta">
                             <span class="article-source">${article.source}</span>
-                            <span class="article-time"><span class="time-icon"></span> ${article.timeAgo}</span>
+                            <div class="article-time-info">
+                                <span>${article.timeAgo}</span>
+                                <span class="reading-time">${article.readingTime || 2}min read</span>
+                            </div>
                         </div>
-                        <h3 class="article-title">
-                            <a href="${article.url}" target="_blank" rel="noopener noreferrer">
-                                ${article.title}
-                            </a>
+                        <h3 class="article-title" onclick="openArticle('${article.url}', this)">
+                            ${article.title}
                         </h3>
                     </div>
+                    
                     <div class="article-content">
-                        ${article.aiSummary ? `<div class="article-summary">${article.aiSummary}</div>` : ''}
+                        ${article.aiSummary ? `
+                            <div class="article-summary" onclick="openArticle('${article.url}', this)" title="Click to read full article">
+                                ${article.aiSummary}
+                            </div>
+                        ` : ''}
                         <p class="article-excerpt">${article.excerpt}</p>
                         ${tagsHtml ? `<div class="article-tags">${tagsHtml}</div>` : ''}
                     </div>
@@ -1149,18 +1825,20 @@ async def dashboard():
 </html>"""
     return html_content
 
-# API Endpoints
+# Enhanced API Endpoints
 @app.get("/api/morning-briefing")
 async def get_morning_briefing():
-    """Generate comprehensive morning briefing"""
+    """Generate comprehensive morning briefing with daily overview"""
     try:
         with sqlite3.connect(news_engine.db_path) as conn:
             briefing = {}
+            total_articles = 0
+            high_priority_count = 0
             
             for category in ['ai', 'finance', 'politics']:
                 cursor = conn.execute("""
                     SELECT id, title, url, source, author, published_date, excerpt,
-                           ai_summary, priority, tags
+                           ai_summary, priority, tags, reading_time, is_read, is_starred
                     FROM articles 
                     WHERE category = ? AND published_date >= datetime('now', '-24 hours')
                     ORDER BY 
@@ -1170,7 +1848,7 @@ async def get_morning_briefing():
                             ELSE 1 
                         END DESC,
                         published_date DESC
-                    LIMIT 10
+                    LIMIT 15
                 """, (category,))
                 
                 articles = []
@@ -1183,6 +1861,10 @@ async def get_morning_briefing():
                     except:
                         time_str = "Recently"
                     
+                    is_high_priority = row[8] == 'high'
+                    if is_high_priority:
+                        high_priority_count += 1
+                    
                     articles.append({
                         'id': row[0],
                         'title': row[1],
@@ -1194,35 +1876,123 @@ async def get_morning_briefing():
                         'aiSummary': row[7],
                         'priority': row[8],
                         'tags': json.loads(row[9] or '[]'),
+                        'readingTime': row[10] or 2,
                         'category': category,
-                        'timeAgo': time_str
+                        'timeAgo': time_str,
+                        'isRead': bool(row[11]),
+                        'isStarred': bool(row[12])
                     })
                 
                 briefing[category] = articles
+                total_articles += len(articles)
+            
+            # Get daily overview
+            today = datetime.now().strftime('%Y-%m-%d')
+            cursor = conn.execute("""
+                SELECT overview_text FROM daily_overviews 
+                WHERE date = ? ORDER BY generated_at DESC LIMIT 1
+            """, (today,))
+            overview_result = cursor.fetchone()
+            daily_overview = overview_result[0] if overview_result else None
             
             return {
-                'platform': 'RPNews',
+                'platform': 'RPNews Enhanced',
                 'date': datetime.now().strftime('%B %d, %Y'),
                 'briefing': briefing,
+                'daily_overview': daily_overview,
                 'generated_at': datetime.now().isoformat(),
-                'total_articles': sum(len(articles) for articles in briefing.values()),
-                'message': 'Your AI-powered morning briefing is ready!'
+                'total_articles': total_articles,
+                'high_priority_count': high_priority_count,
+                'ai_type': news_engine.ai.ai_type,
+                'message': 'Your enhanced AI-powered briefing is ready!'
             }
             
     except Exception as e:
         logger.error(f"Error generating briefing: {str(e)}")
         return {
-            'platform': 'RPNews',
+            'platform': 'RPNews Enhanced',
             'date': datetime.now().strftime('%B %d, %Y'),
             'briefing': {'ai': [], 'finance': [], 'politics': []},
+            'daily_overview': 'Daily overview will be available after first news collection.',
             'error': 'Briefing generation failed - this may be the first run',
             'generated_at': datetime.now().isoformat(),
-            'suggestion': 'Try clicking "Collect Latest News" on the main dashboard'
+            'suggestion': 'Try clicking "Refresh" to collect the latest news'
         }
+
+@app.post("/api/articles/{article_id}/read")
+async def mark_article_read(article_id: str):
+    """Mark an article as read"""
+    success = news_engine.mark_article_read(article_id)
+    if success:
+        return {'status': 'success', 'message': 'Article marked as read'}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to mark article as read")
+
+@app.post("/api/articles/{article_id}/star")
+async def star_article(article_id: str, request: dict):
+    """Star or unstar an article"""
+    starred = request.get('starred', True)
+    success = news_engine.star_article(article_id, starred)
+    if success:
+        action = 'starred' if starred else 'unstarred'
+        return {'status': 'success', 'message': f'Article {action}'}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to update article star status")
+
+@app.get("/api/articles/starred")
+async def get_starred_articles():
+    """Get all starred articles"""
+    try:
+        with sqlite3.connect(news_engine.db_path) as conn:
+            cursor = conn.execute("""
+                SELECT id, title, url, source, author, published_date, excerpt,
+                       ai_summary, category, priority, tags, reading_time, starred_at
+                FROM articles 
+                WHERE is_starred = TRUE
+                ORDER BY starred_at DESC
+                LIMIT 100
+            """)
+            
+            articles = []
+            for row in cursor.fetchall():
+                try:
+                    pub_date = datetime.fromisoformat(row[5])
+                    hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
+                    time_str = f"{hours_ago}h ago" if hours_ago < 24 else f"{hours_ago//24}d ago"
+                except:
+                    time_str = "Recently"
+                
+                articles.append({
+                    'id': row[0],
+                    'title': row[1],
+                    'url': row[2],
+                    'source': row[3],
+                    'author': row[4] or 'Unknown',
+                    'publishedDate': row[5],
+                    'excerpt': row[6],
+                    'aiSummary': row[7],
+                    'category': row[8],
+                    'priority': row[9],
+                    'tags': json.loads(row[10] or '[]'),
+                    'readingTime': row[11] or 2,
+                    'timeAgo': time_str,
+                    'starredAt': row[12],
+                    'isStarred': True
+                })
+            
+            return {
+                'articles': articles,
+                'count': len(articles),
+                'generated_at': datetime.now().isoformat()
+            }
+            
+    except Exception as e:
+        logger.error(f"Error getting starred articles: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get starred articles")
 
 @app.get("/api/articles/{category}")
 async def get_articles(category: str, limit: int = 50, priority: str = "all"):
-    """Get articles for a specific category"""
+    """Get articles for a specific category with enhanced features"""
     if category not in ['ai', 'finance', 'politics']:
         raise HTTPException(status_code=400, detail="Category must be ai, finance, or politics")
     
@@ -1230,7 +2000,7 @@ async def get_articles(category: str, limit: int = 50, priority: str = "all"):
         with sqlite3.connect(news_engine.db_path) as conn:
             query = """
                 SELECT id, title, url, source, author, published_date, excerpt,
-                       ai_summary, priority, tags
+                       ai_summary, priority, tags, reading_time, is_read, is_starred
                 FROM articles 
                 WHERE category = ?
             """
@@ -1247,7 +2017,6 @@ async def get_articles(category: str, limit: int = 50, priority: str = "all"):
             
             articles = []
             for row in cursor.fetchall():
-                # Calculate time ago
                 try:
                     pub_date = datetime.fromisoformat(row[5])
                     hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
@@ -1266,8 +2035,11 @@ async def get_articles(category: str, limit: int = 50, priority: str = "all"):
                     'aiSummary': row[7],
                     'priority': row[8],
                     'tags': json.loads(row[9] or '[]'),
+                    'readingTime': row[10] or 2,
                     'category': category,
-                    'timeAgo': time_str
+                    'timeAgo': time_str,
+                    'isRead': bool(row[11]),
+                    'isStarred': bool(row[12])
                 })
             
             category_names = {
@@ -1290,7 +2062,7 @@ async def get_articles(category: str, limit: int = 50, priority: str = "all"):
 
 @app.get("/api/stats")
 async def get_stats():
-    """Platform statistics and health metrics"""
+    """Enhanced platform statistics"""
     try:
         with sqlite3.connect(news_engine.db_path) as conn:
             stats = {}
@@ -1306,6 +2078,20 @@ async def get_stats():
                     WHERE category = ? AND published_date >= date('now')
                 """, (category,))
                 stats[f'{category}_today'] = cursor.fetchone()[0]
+                
+                # High priority today
+                cursor = conn.execute("""
+                    SELECT COUNT(*) FROM articles 
+                    WHERE category = ? AND priority = 'high' AND published_date >= date('now')
+                """, (category,))
+                stats[f'{category}_high_priority'] = cursor.fetchone()[0]
+            
+            # Reading stats
+            cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE is_read = TRUE")
+            stats['articles_read'] = cursor.fetchone()[0]
+            
+            cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE is_starred = TRUE")
+            stats['articles_starred'] = cursor.fetchone()[0]
             
             # Source counts
             stats['sources'] = {
@@ -1316,6 +2102,7 @@ async def get_stats():
             
             # AI type
             stats['ai_type'] = news_engine.ai.ai_type
+            stats['ai_available'] = news_engine.ai.ai_available
             
             return stats
             
@@ -1323,27 +2110,25 @@ async def get_stats():
         logger.error(f"Error getting stats: {str(e)}")
         return {
             'error': 'Stats temporarily unavailable',
-            'ai_type': 'enhanced_rules',
+            'ai_type': news_engine.ai.ai_type,
+            'ai_available': news_engine.ai.ai_available,
             'sources': {
                 'ai': len(news_engine.sources['ai']),
                 'finance': len(news_engine.sources['finance']),
                 'politics': len(news_engine.sources['politics'])
-            },
-            'ai_today': 0,
-            'finance_today': 0,
-            'politics_today': 0
+            }
         }
 
 @app.post("/api/collect")
 async def trigger_collection(background_tasks: BackgroundTasks):
-    """Manually trigger news collection"""
+    """Enhanced manual collection trigger"""
     
     async def run_collection():
         try:
             logger.info("Manual collection triggered")
             async with aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=30),
-                headers={'User-Agent': 'RPNews/1.0'}
+                timeout=aiohttp.ClientTimeout(total=45),
+                headers={'User-Agent': 'RPNews Enhanced/2.0'}
             ) as session:
                 news_engine.session = session
                 total_collected = await news_engine.collect_all_news()
@@ -1355,43 +2140,55 @@ async def trigger_collection(background_tasks: BackgroundTasks):
     background_tasks.add_task(run_collection)
     
     return {
-        'message': 'News collection started',
+        'message': 'Enhanced news collection started',
         'timestamp': datetime.now().isoformat(),
-        'status': 'Background collection initiated',
-        'note': 'Articles will appear in a few minutes'
+        'status': 'Background collection initiated with AI processing',
+        'note': 'Articles with AI summaries will appear in a few minutes',
+        'features': ['AI summaries', 'Priority detection', 'Reading time estimation']
     }
 
 @app.get("/api/health")
 async def health_check():
-    """Health check endpoint for deployment platforms"""
+    """Enhanced health check with AI status"""
     try:
         # Test database connectivity
         with sqlite3.connect(news_engine.db_path) as conn:
             cursor = conn.execute("SELECT COUNT(*) FROM articles")
             article_count = cursor.fetchone()[0]
+            
+            cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE is_read = TRUE")
+            read_count = cursor.fetchone()[0]
+            
+            cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE is_starred = TRUE")
+            starred_count = cursor.fetchone()[0]
         
         return {
             'status': 'healthy',
-            'platform': 'RPNews',
+            'platform': 'RPNews Enhanced',
             'timestamp': datetime.now().isoformat(),
             'ai_type': news_engine.ai.ai_type,
+            'ai_available': news_engine.ai.ai_available,
             'article_count': article_count,
+            'articles_read': read_count,
+            'articles_starred': starred_count,
             'sources_count': sum(len(sources) for sources in news_engine.sources.values()),
-            'database': 'connected'
+            'database': 'connected',
+            'features': ['AI Summaries', 'Priority Detection', 'Article Management', 'Daily Overview']
         }
     except Exception as e:
         return {
             'status': 'unhealthy',
-            'platform': 'RPNews', 
+            'platform': 'RPNews Enhanced', 
             'error': str(e),
             'timestamp': datetime.now().isoformat()
         }
 
 if __name__ == "__main__":
-    logger.info("🚀 Starting RPNews Platform")
+    logger.info("🚀 Starting Enhanced RPNews Platform")
     logger.info(f"🌐 Port: {PORT}")
-    logger.info(f"🤖 AI Engine: enhanced_rules")
+    logger.info(f"🤖 AI Engine: {news_engine.ai.ai_type}")
+    logger.info(f"🎯 AI Model Available: {news_engine.ai.ai_available}")
     logger.info(f"📊 Total Sources: {sum(len(sources) for sources in news_engine.sources.values())}")
-    logger.info("📰 Features: Morning briefings, smart summaries, 24/7 collection")
+    logger.info("✨ Enhanced Features: AI summaries, priority detection, article management")
     
     uvicorn.run(app, host="0.0.0.0", port=PORT)
