@@ -1,581 +1,6 @@
-# Complete professional news dashboard with full UI
-@app.get("/", response_class=HTMLResponse)
-async def dashboard():
-    """Complete professional news intelligence dashboard with full frontend"""
-    return get_dashboard_html()
-
-def get_dashboard_html():
-    """Generate the complete dashboard HTML"""
-    return """<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPNews - AI News Intelligence</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            color: #2c3e50; line-height: 1.6;
-        }
-        .header {
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1); position: sticky; top: 0; z-index: 1000;
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
-        }
-        .nav-container {
-            max-width: 1400px; margin: 0 auto; padding: 0 20px;
-            display: flex; align-items: center; justify-content: space-between; height: 70px;
-        }
-        .logo {
-            font-size: 1.8em; font-weight: 800;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        .nav-tabs {
-            display: flex; gap: 0; background: rgba(102, 126, 234, 0.1);
-            border-radius: 12px; padding: 4px;
-        }
-        .nav-tab {
-            padding: 12px 24px; border: none; background: transparent; color: #667eea;
-            font-weight: 600; border-radius: 8px; cursor: pointer; transition: all 0.3s ease;
-        }
-        .nav-tab:hover { background: rgba(102, 126, 234, 0.2); }
-        .nav-tab.active { background: #667eea; color: white; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
-        .controls { display: flex; gap: 10px; align-items: center; }
-        .control-btn {
-            background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none;
-            padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;
-            transition: all 0.3s ease; display: flex; align-items: center; gap: 6px;
-        }
-        .control-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3); }
-        .control-btn.secondary {
-            background: rgba(102, 126, 234, 0.1); color: #667eea;
-            border: 1px solid rgba(102, 126, 234, 0.3);
-        }
-        .status-indicator { display: flex; align-items: center; gap: 6px; font-size: 0.85em; color: #666; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #28a745; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        .container { max-width: 1400px; margin: 0 auto; padding: 30px 20px; }
-        .briefing-header {
-            text-align: center; margin-bottom: 30px; background: rgba(255, 255, 255, 0.9);
-            padding: 30px; border-radius: 20px; backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-        .briefing-title { font-size: 2.5em; font-weight: 700; color: #2c3e50; margin-bottom: 10px; }
-        .briefing-date { color: #667eea; font-size: 1.2em; font-weight: 500; margin-bottom: 20px; }
-        .daily-overview {
-            background: linear-gradient(135deg, #f8f9ff, #e8ecff); padding: 25px; border-radius: 15px;
-            border-left: 5px solid #667eea; margin-bottom: 20px; font-size: 1.05em; line-height: 1.7;
-            color: #2c3e50; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
-        }
-        .overview-title {
-            font-weight: 700; color: #667eea; margin-bottom: 10px;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .stats-bar {
-            display: flex; justify-content: center; gap: 30px; margin-top: 20px; flex-wrap: wrap;
-        }
-        .stat-item {
-            text-align: center; padding: 12px 20px; background: rgba(102, 126, 234, 0.1);
-            border-radius: 12px; min-width: 100px;
-        }
-        .stat-number { font-size: 1.5em; font-weight: 700; color: #667eea; }
-        .stat-label { font-size: 0.9em; color: #7f8c8d; }
-        .view-controls {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 25px; flex-wrap: wrap; gap: 15px;
-        }
-        .filter-controls { display: flex; gap: 10px; flex-wrap: wrap; }
-        .filter-btn {
-            padding: 8px 16px; border: 1px solid rgba(102, 126, 234, 0.3);
-            background: rgba(102, 126, 234, 0.1); color: #667eea; border-radius: 20px;
-            cursor: pointer; font-size: 0.9em; transition: all 0.3s ease;
-        }
-        .filter-btn.active { background: #667eea; color: white; }
-        .category-section { margin-bottom: 50px; }
-        .category-header {
-            display: flex; align-items: center; gap: 15px; margin-bottom: 25px;
-            padding: 20px 30px; background: rgba(255, 255, 255, 0.95); border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-        .category-icon {
-            font-size: 1.2em; font-weight: 700; color: #667eea;
-            background: rgba(102, 126, 234, 0.1); padding: 8px 12px;
-            border-radius: 8px; min-width: 40px; text-align: center;
-        }
-        .category-title { font-size: 1.8em; font-weight: 700; color: #2c3e50; flex: 1; }
-        .category-stats { display: flex; gap: 15px; }
-        .category-count {
-            background: #667eea; color: white; padding: 6px 12px;
-            border-radius: 20px; font-size: 0.9em; font-weight: 600;
-        }
-        .articles-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px;
-        }
-        .article-card {
-            background: white; border-radius: 16px; overflow: hidden;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); transition: all 0.3s ease;
-            border: 1px solid rgba(102, 126, 234, 0.1); position: relative; opacity: 1;
-        }
-        .article-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15); }
-        .article-card.read { opacity: 0.7; }
-        .article-card.starred { border-left: 4px solid #ffd700; }
-        .article-header { padding: 20px 25px 15px; border-bottom: 1px solid #f8f9fa; }
-        .article-meta {
-            display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
-        }
-        .article-source { font-weight: 600; color: #667eea; font-size: 0.9em; }
-        .article-time-info {
-            display: flex; align-items: center; gap: 10px; color: #95a5a6; font-size: 0.85em;
-        }
-        .reading-time {
-            background: rgba(102, 126, 234, 0.1); color: #667eea;
-            padding: 2px 8px; border-radius: 10px; font-size: 0.8em;
-        }
-        .priority-badge {
-            position: absolute; top: 15px; right: 15px; padding: 4px 8px;
-            border-radius: 6px; font-size: 0.75em; font-weight: 600; text-transform: uppercase;
-        }
-        .priority-high { background: #ff6b6b; color: white; }
-        .priority-medium { background: #feca57; color: white; }
-        .priority-low { background: #48dbfb; color: white; }
-        .article-title {
-            font-size: 1.25em; font-weight: 700; color: #2c3e50; line-height: 1.4;
-            margin-bottom: 15px; cursor: pointer; transition: color 0.3s ease;
-        }
-        .article-title:hover { color: #667eea; }
-        .article-actions { position: absolute; top: 15px; left: 15px; display: flex; gap: 5px; }
-        .action-btn {
-            width: 28px; height: 28px; border-radius: 50%; border: none; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; font-size: 14px;
-            transition: all 0.3s ease; background: rgba(255, 255, 255, 0.9); color: #666;
-        }
-        .action-btn:hover { background: white; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); }
-        .action-btn.read { color: #28a745; }
-        .action-btn.starred { color: #ffd700; }
-        .article-content { padding: 0 25px 20px; }
-        .article-summary {
-            background: linear-gradient(135deg, #f8f9ff, #f0f4ff); padding: 15px; border-radius: 10px;
-            margin-bottom: 15px; border-left: 4px solid #667eea; font-size: 0.95em; line-height: 1.5;
-            cursor: pointer; transition: all 0.3s ease;
-        }
-        .article-summary:hover { background: linear-gradient(135deg, #f0f4ff, #e8ecff); transform: translateX(2px); }
-        .article-excerpt { color: #5d6d7e; line-height: 1.6; margin-bottom: 15px; }
-        .article-tags { display: flex; gap: 8px; flex-wrap: wrap; }
-        .tag {
-            background: rgba(102, 126, 234, 0.1); color: #667eea; padding: 4px 10px;
-            border-radius: 12px; font-size: 0.8em; font-weight: 500;
-        }
-        .loading { text-align: center; padding: 60px 20px; color: #7f8c8d; }
-        .loading-spinner {
-            width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea;
-            border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .empty-state { text-align: center; padding: 60px 20px; color: #7f8c8d; }
-        .empty-state-icon { font-size: 3em; margin-bottom: 20px; color: #bdc3c7; font-weight: 300; }
-        .collection-status {
-            background: rgba(40, 167, 69, 0.1); border: 1px solid rgba(40, 167, 69, 0.3);
-            color: #28a745; padding: 15px 20px; border-radius: 10px; margin: 20px 0;
-            font-weight: 500; display: flex; align-items: center; gap: 10px;
-        }
-        @media (max-width: 768px) {
-            .nav-container { flex-direction: column; height: auto; padding: 15px 20px; gap: 15px; }
-            .nav-tabs { width: 100%; justify-content: center; }
-            .nav-tab { flex: 1; text-align: center; padding: 10px 16px; font-size: 0.9em; }
-            .controls { width: 100%; justify-content: center; flex-wrap: wrap; }
-            .briefing-title { font-size: 2em; }
-            .articles-grid { grid-template-columns: 1fr; }
-            .category-header { padding: 15px 20px; flex-wrap: wrap; }
-        }
-        .fade-in { animation: fadeIn 0.6s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
-</head>
-<body>
-    <header class="header">
-        <div class="nav-container">
-            <div class="logo">RPNews</div>
-            <div class="nav-tabs">
-                <button class="nav-tab active" data-view="briefing">Daily Briefing</button>
-                <button class="nav-tab" data-view="ai">AI & Technology</button>
-                <button class="nav-tab" data-view="finance">Finance & Markets</button>
-                <button class="nav-tab" data-view="politics">Politics & Policy</button>
-                <button class="nav-tab" data-view="starred">⭐ Starred</button>
-            </div>
-            <div class="controls">
-                <div class="status-indicator">
-                    <div class="status-dot"></div>
-                    <span>Auto-updating</span>
-                </div>
-                <button class="control-btn secondary" data-view="reading-list">📖 Reading List</button>
-                <button class="control-btn secondary" onclick="debugAPI()">🔍 Debug</button>
-                <button class="control-btn" onclick="refreshNews()">
-                    <span id="refresh-icon">↻</span> Refresh
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <div class="container">
-        <div id="loading" class="loading">
-            <div class="loading-spinner"></div>
-            <h3>Loading your personalized news briefing...</h3>
-            <p>Collecting and analyzing articles from premium sources</p>
-            <div class="collection-status">
-                <span>🔄</span>
-                News collection runs automatically every 30 minutes
-            </div>
-        </div>
-
-        <div id="content" style="display: none;">
-            <div class="briefing-header">
-                <h1 class="briefing-title">Daily Intelligence Briefing</h1>
-                <p class="briefing-date" id="briefing-date"></p>
-                
-                <div id="daily-overview" class="daily-overview" style="display: none;">
-                    <div class="overview-title">🌅 Daily Overview</div>
-                    <div id="overview-text"></div>
-                </div>
-                
-                <div class="stats-bar" id="stats-bar"></div>
-            </div>
-
-            <div class="view-controls">
-                <div class="filter-controls">
-                    <button class="filter-btn active" data-filter="all">All Priority</button>
-                    <button class="filter-btn" data-filter="high">High Priority</button>
-                    <button class="filter-btn" data-filter="unread">Unread Only</button>
-                </div>
-            </div>
-
-            <div id="news-content"></div>
-        </div>
-    </div>
-
-""" + get_javascript_code()
-
-def get_javascript_code():
-    """Generate the JavaScript code for the dashboard"""
-    return """
-    <script>
-        let currentData = null;
-        let currentView = 'briefing';
-        let currentFilter = 'all';
-        let isLoading = false;
-
-        document.addEventListener('DOMContentLoaded', function() {
-            loadBriefing();
-            setupNavigation();
-            setupFilters();
-            setInterval(autoRefresh, 300000);
-        });
-
-        function setupNavigation() {
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
-                    currentView = this.dataset.view;
-                    if (currentData) { displayContent(); }
-                });
-            });
-        }
-
-        function setupFilters() {
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    currentFilter = this.dataset.filter;
-                    if (currentData) { displayContent(); }
-                });
-            });
-        }
-
-        async function loadBriefing() {
-            if (isLoading) return;
-            isLoading = true;
-            try {
-                showLoading();
-                const response = await fetch('/api/morning-briefing');
-                if (!response.ok) { throw new Error(`HTTP ${response.status}`); }
-                currentData = await response.json();
-                console.log('Briefing data received:', currentData);
-                displayContent();
-            } catch (error) {
-                console.error('Error loading briefing:', error);
-                hideLoading();
-                showEmptyState(`Unable to load news briefing. Error: ${error.message}`);
-            } finally {
-                isLoading = false;
-            }
-        }
-
-        async function autoRefresh() {
-            try {
-                const response = await fetch('/api/morning-briefing');
-                if (response.ok) {
-                    const newData = await response.json();
-                    const newTotal = newData.total_articles || 0;
-                    const currentTotal = currentData?.total_articles || 0;
-                    if (newTotal > currentTotal) {
-                        currentData = newData;
-                        displayContent();
-                        console.log(`Auto-refresh: Found ${newTotal - currentTotal} new articles`);
-                    }
-                }
-            } catch (error) {
-                console.log('Auto-refresh failed:', error);
-            }
-        }
-
-        async function refreshNews() {
-            const refreshIcon = document.getElementById('refresh-icon');
-            refreshIcon.style.animation = 'spin 1s linear infinite';
-            try {
-                await loadBriefing();
-            } finally {
-                setTimeout(() => { refreshIcon.style.animation = 'none'; }, 1000);
-            }
-        }
-
-        async function debugAPI() {
-            console.log('=== DEBUG API CALLS ===');
-            try {
-                console.log('Testing health endpoint...');
-                const healthResponse = await fetch('/api/health');
-                const healthData = await healthResponse.json();
-                console.log('Health data:', healthData);
-                
-                console.log('Testing morning briefing endpoint...');
-                const briefingResponse = await fetch('/api/morning-briefing');
-                const briefingData = await briefingResponse.json();
-                console.log('Briefing data:', briefingData);
-                
-                alert(`Debug complete! Check browser console (F12) for details. Articles found: ${briefingData.total_articles || 0}`);
-            } catch (error) {
-                console.error('Debug error:', error);
-                alert(`Debug failed: ${error.message}`);
-            }
-        }
-
-        async function markAsRead(articleId, element) {
-            try {
-                const response = await fetch(`/api/articles/${articleId}/read`, { method: 'POST' });
-                if (response.ok) {
-                    element.closest('.article-card').classList.add('read');
-                    const btn = element.closest('.article-card').querySelector('.read-btn');
-                    btn.classList.add('read');
-                    btn.innerHTML = '✓';
-                }
-            } catch (error) {
-                console.error('Error marking as read:', error);
-            }
-        }
-
-        async function toggleStar(articleId, element) {
-            try {
-                const card = element.closest('.article-card');
-                const isStarred = card.classList.contains('starred');
-                const response = await fetch(`/api/articles/${articleId}/star`, { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ starred: !isStarred })
-                });
-                if (response.ok) {
-                    if (isStarred) {
-                        card.classList.remove('starred');
-                        element.innerHTML = '☆';
-                        element.classList.remove('starred');
-                    } else {
-                        card.classList.add('starred');
-                        element.innerHTML = '★';
-                        element.classList.add('starred');
-                    }
-                }
-            } catch (error) {
-                console.error('Error toggling star:', error);
-            }
-        }
-
-        function openArticle(url, summaryElement) {
-            summaryElement.style.background = 'linear-gradient(135deg, #e8ecff, #d4e3ff)';
-            window.open(url, '_blank', 'noopener,noreferrer');
-        }
-
-        function showLoading() {
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('content').style.display = 'none';
-        }
-
-        function hideLoading() {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('content').style.display = 'block';
-        }
-
-        function showEmptyState(message) {
-            hideLoading();
-            document.getElementById('news-content').innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">📰</div>
-                    <h3>News Collection in Progress</h3>
-                    <p>${message}</p>
-                    <div class="collection-status">
-                        <span>🔄</span>
-                        Articles are being collected automatically every 30 minutes
-                    </div>
-                </div>
-            `;
-        }
-
-        function displayContent() {
-            hideLoading();
-            console.log('Displaying content. Data check:', {
-                hasData: !!currentData,
-                hasBriefing: !!(currentData && currentData.briefing),
-                totalArticles: currentData?.total_articles || 0,
-                aiArticles: currentData?.briefing?.ai?.length || 0,
-                financeArticles: currentData?.briefing?.finance?.length || 0,
-                politicsArticles: currentData?.briefing?.politics?.length || 0
-            });
-            
-            if (!currentData) {
-                showEmptyState("No data received from server. Please try refreshing.");
-                return;
-            }
-
-            const totalArticles = (currentData.briefing?.ai?.length || 0) + 
-                                 (currentData.briefing?.finance?.length || 0) + 
-                                 (currentData.briefing?.politics?.length || 0);
-            
-            console.log('Total articles found:', totalArticles);
-            
-            if (totalArticles === 0) {
-                showEmptyState(`Articles are ready but may not be displaying properly. Backend reports: ${currentData.message || 'No message'}. Try clicking refresh or wait a moment.`);
-                return;
-            }
-
-            document.getElementById('briefing-date').textContent = currentData.date || 'Today';
-            
-            const overviewDiv = document.getElementById('daily-overview');
-            const overviewText = document.getElementById('overview-text');
-            if (currentData.daily_overview && currentView === 'briefing') {
-                overviewText.textContent = currentData.daily_overview;
-                overviewDiv.style.display = 'block';
-            } else {
-                overviewDiv.style.display = 'none';
-            }
-            
-            updateStatsBar();
-            
-            const contentDiv = document.getElementById('news-content');
-            contentDiv.className = 'fade-in';
-            
-            try {
-                if (currentView === 'briefing') {
-                    contentDiv.innerHTML = displayAllCategories();
-                } else if (currentView === 'starred') {
-                    contentDiv.innerHTML = displayStarredArticles();
-                } else if (currentView === 'reading-list') {
-                    contentDiv.innerHTML = displayUnreadArticles();
-                } else {
-                    contentDiv.innerHTML = displaySingleCategory(currentView);
-                }
-                console.log('Content displayed successfully');
-            } catch (displayError) {
-                console.error('Error displaying content:', displayError);
-                showEmptyState(`Error displaying articles: ${displayError.message}`);
-            }
-        }
-
-        function updateStatsBar() {
-            const statsBar = document.getElementById('stats-bar');
-            if (currentView === 'briefing') {
-                const totalArticles = currentData.total_articles || 0;
-                const aiCount = currentData.briefing?.ai?.length || 0;
-                const financeCount = currentData.briefing?.finance?.length || 0;
-                const politicsCount = currentData.briefing?.politics?.length || 0;
-                const highPriorityCount = currentData.high_priority_count || 0;
-                
-                statsBar.innerHTML = `
-                    <div class="stat-item"><div class="stat-number">${totalArticles}</div><div class="stat-label">Total Articles</div></div>
-                    <div class="stat-item"><div class="stat-number">${highPriorityCount}</div><div class="stat-label">High Priority</div></div>
-                    <div class="stat-item"><div class="stat-number">${aiCount}</div><div class="stat-label">AI & Tech</div></div>
-                    <div class="stat-item"><div class="stat-number">${financeCount}</div><div class="stat-label">Finance</div></div>
-                    <div class="stat-item"><div class="stat-number">${politicsCount}</div><div class="stat-label">Politics</div></div>
-                `;
-            } else {
-                const categoryData = getCurrentCategoryData();
-                const highPriorityCount = categoryData.filter(a => a.priority === 'high').length;
-                const unreadCount = categoryData.filter(a => !a.isRead).length;
-                statsBar.innerHTML = `
-                    <div class="stat-item"><div class="stat-number">${categoryData.length}</div><div class="stat-label">Articles</div></div>
-                    <div class="stat-item"><div class="stat-number">${highPriorityCount}</div><div class="stat-label">High Priority</div></div>
-                    <div class="stat-item"><div class="stat-number">${unreadCount}</div><div class="stat-label">Unread</div></div>
-                `;
-            }
-        }
-
-        function getCurrentCategoryData() {
-            if (currentView === 'starred') {
-                return getAllArticles().filter(a => a.isStarred);
-            } else if (currentView === 'reading-list') {
-                return getAllArticles().filter(a => !a.isRead);
-            } else if (currentView !== 'briefing') {
-                return currentData.briefing[currentView] || [];
-            }
-            return [];
-        }
-
-        function getAllArticles() {
-            const allArticles = [];
-            ['ai', 'finance', 'politics'].forEach(category => {
-                if (currentData.briefing[category]) {
-                    allArticles.push(...currentData.briefing[category]);
-                }
-            });
-            return allArticles;
-        }
-
-        function applyFilters(articles) {
-            let filtered = [...articles];
-            if (currentFilter === 'high') {
-                filtered = filtered.filter(a => a.priority === 'high');
-            } else if (currentFilter === 'unread') {
-                filtered = filtered.filter(a => !a.isRead);
-            }
-            return filtered;
-        }
-
-        function displayAllCategories() {
-            let html = '';
-            const categories = [
-                { key: 'ai', title: 'AI & Technology', icon: 'AI' },
-                { key: 'finance', title: 'Finance & Markets', icon: 'FIN' },
-                { key: 'politics', title: 'Politics & Policy', icon: 'POL' }
-            ];
-
-            categories.forEach(category => {
-                const articles = applyFilters(currentData.briefing[category.key] || []);
-                if (articles.length > 0) {
-                    const highPriorityCount = articles.filter(a => a.priority === 'high').length;
-                    const unreadCount = articles.filter(a => !a.isRead).length;
-                    
-                    html += `
-                        <div class="category-section">
-                            <div class="category-header">
-                                <span class="category-icon">${category.icon}</span>
-                                <h2 class="category-title">${category.title}</h2>
-                                <div class="category-stats">
-                                    ${highPriorityCount > 0 ? `<span class="category-count" style="background: #ff6b6b;">${highPriorityCount} high priority</span>` : ''}
-                                    <span class="category-count">${articles.length} articles</span>
-                                    ${unreadCount > 0 ? `<span class="category-count" style="background: #48dbfb;">${unreadCount} unread</span>` : ''}
-                                </div>"""
-RPNews - Complete AI-Powered News Intelligence Platform
-Full frontend included with all UI components
+"""
+RPNews - Fixed AI-Powered News Intelligence Platform
+Fixed RSS feeds, better error handling, automatic continuous updates
 Deploy to Railway, Render, or Fly.io for free hosting
 """
 
@@ -1281,7 +706,7 @@ class RPNewsEngine:
             return False
 
 # Initialize FastAPI application
-app = FastAPI(title="RPNews - Complete AI News Intelligence", version="2.0.2")
+app = FastAPI(title="RPNews - Fixed AI News Intelligence", version="2.0.1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -1297,13 +722,13 @@ news_engine = RPNewsEngine()
 @app.on_event("startup")
 async def startup_event():
     """Start background tasks when FastAPI starts"""
-    logger.info("🚀 Complete FastAPI startup - starting continuous background collection")
+    logger.info("🚀 Fixed FastAPI startup - starting continuous background collection")
     news_engine.start_background_collection()
 
-# Complete professional news dashboard with full UI
+# Enhanced professional news dashboard with better loading states
 @app.get("/", response_class=HTMLResponse)
 async def dashboard():
-    """Complete professional news intelligence dashboard with full frontend"""
+    """Enhanced professional news intelligence dashboard"""
     html_content = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1907,7 +1332,6 @@ async def dashboard():
                     <span>Auto-updating</span>
                 </div>
                 <button class="control-btn secondary" data-view="reading-list">📖 Reading List</button>
-                <button class="control-btn secondary" onclick="debugAPI()">🔍 Debug</button>
                 <button class="control-btn" onclick="refreshNews()">
                     <span id="refresh-icon">↻</span> Refresh
                 </button>
@@ -2010,18 +1434,10 @@ async def dashboard():
                 }
                 
                 currentData = await response.json();
-                
-                // Log the response for debugging
-                console.log('Briefing data received:', currentData);
-                
-                // Always try to display content, even if it seems empty
                 displayContent();
-                
             } catch (error) {
                 console.error('Error loading briefing:', error);
-                // Even on error, try to show something
-                hideLoading();
-                showEmptyState(`Unable to load news briefing. Error: ${error.message}`);
+                showEmptyState("Unable to load news briefing. The system is collecting articles in the background. Please try again in a few minutes.");
             } finally {
                 isLoading = false;
             }
@@ -2059,37 +1475,6 @@ async def dashboard():
                 setTimeout(() => {
                     refreshIcon.style.animation = 'none';
                 }, 1000);
-            }
-        }
-
-        async function debugAPI() {
-            console.log('=== DEBUG API CALLS ===');
-            
-            try {
-                // Test health endpoint
-                console.log('Testing health endpoint...');
-                const healthResponse = await fetch('/api/health');
-                const healthData = await healthResponse.json();
-                console.log('Health data:', healthData);
-                
-                // Test morning briefing endpoint
-                console.log('Testing morning briefing endpoint...');
-                const briefingResponse = await fetch('/api/morning-briefing');
-                const briefingData = await briefingResponse.json();
-                console.log('Briefing data:', briefingData);
-                
-                // Test stats endpoint
-                console.log('Testing stats endpoint...');
-                const statsResponse = await fetch('/api/stats');
-                const statsData = await statsResponse.json();
-                console.log('Stats data:', statsData);
-                
-                alert(`Debug complete! Check browser console (F12) for details. 
-Articles found: ${briefingData.total_articles || 0}`);
-                
-            } catch (error) {
-                console.error('Debug error:', error);
-                alert(`Debug failed: ${error.message}`);
             }
         }
 
@@ -2170,24 +1555,679 @@ Articles found: ${briefingData.total_articles || 0}`);
         function displayContent() {
             hideLoading();
             
-            // Log what we received
-            console.log('Displaying content. Data check:', {
-                hasData: !!currentData,
-                hasBriefing: !!(currentData && currentData.briefing),
-                totalArticles: currentData?.total_articles || 0,
-                aiArticles: currentData?.briefing?.ai?.length || 0,
-                financeArticles: currentData?.briefing?.finance?.length || 0,
-                politicsArticles: currentData?.briefing?.politics?.length || 0
-            });
-            
-            if (!currentData) {
-                showEmptyState("No data received from server. Please try refreshing.");
+            if (!currentData || !currentData.briefing) {
+                showEmptyState("Your briefing is being prepared. Fresh articles are being collected from premium sources.");
                 return;
             }
 
             // Check if we have any articles at all
-            const totalArticles = (currentData.briefing?.ai?.length || 0) + 
-                                 (currentData.briefing?.finance?.length || 0) + 
-                                 (currentData.briefing?.politics?.length || 0);
+            const totalArticles = (currentData.briefing.ai?.length || 0) + 
+                                 (currentData.briefing.finance?.length || 0) + 
+                                 (currentData.briefing.politics?.length || 0);
             
-            console.log('Total articles found:', totalArticles);
+            if (totalArticles === 0) {
+                showEmptyState("Articles are being collected and processed. This may take a few minutes on first startup.");
+                return;
+            }
+
+            // Update header
+            document.getElementById('briefing-date').textContent = currentData.date;
+            
+            // Show daily overview if available
+            const overviewDiv = document.getElementById('daily-overview');
+            const overviewText = document.getElementById('overview-text');
+            if (currentData.daily_overview && currentView === 'briefing') {
+                overviewText.textContent = currentData.daily_overview;
+                overviewDiv.style.display = 'block';
+            } else {
+                overviewDiv.style.display = 'none';
+            }
+            
+            // Update stats
+            updateStatsBar();
+            
+            // Display articles
+            const contentDiv = document.getElementById('news-content');
+            contentDiv.className = 'fade-in';
+            
+            if (currentView === 'briefing') {
+                contentDiv.innerHTML = displayAllCategories();
+            } else if (currentView === 'starred') {
+                contentDiv.innerHTML = displayStarredArticles();
+            } else if (currentView === 'reading-list') {
+                contentDiv.innerHTML = displayUnreadArticles();
+            } else {
+                contentDiv.innerHTML = displaySingleCategory(currentView);
+            }
+        }
+
+        function updateStatsBar() {
+            const statsBar = document.getElementById('stats-bar');
+            
+            if (currentView === 'briefing') {
+                const totalArticles = currentData.total_articles || 0;
+                const aiCount = currentData.briefing.ai?.length || 0;
+                const financeCount = currentData.briefing.finance?.length || 0;
+                const politicsCount = currentData.briefing.politics?.length || 0;
+                const highPriorityCount = currentData.high_priority_count || 0;
+                
+                statsBar.innerHTML = `
+                    <div class="stat-item">
+                        <div class="stat-number">${totalArticles}</div>
+                        <div class="stat-label">Total Articles</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${highPriorityCount}</div>
+                        <div class="stat-label">High Priority</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${aiCount}</div>
+                        <div class="stat-label">AI & Tech</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${financeCount}</div>
+                        <div class="stat-label">Finance</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${politicsCount}</div>
+                        <div class="stat-label">Politics</div>
+                    </div>
+                `;
+            } else {
+                const categoryData = getCurrentCategoryData();
+                const highPriorityCount = categoryData.filter(a => a.priority === 'high').length;
+                const unreadCount = categoryData.filter(a => !a.isRead).length;
+                
+                statsBar.innerHTML = `
+                    <div class="stat-item">
+                        <div class="stat-number">${categoryData.length}</div>
+                        <div class="stat-label">Articles</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${highPriorityCount}</div>
+                        <div class="stat-label">High Priority</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${unreadCount}</div>
+                        <div class="stat-label">Unread</div>
+                    </div>
+                `;
+            }
+        }
+
+        function getCurrentCategoryData() {
+            if (currentView === 'starred') {
+                return getAllArticles().filter(a => a.isStarred);
+            } else if (currentView === 'reading-list') {
+                return getAllArticles().filter(a => !a.isRead);
+            } else if (currentView !== 'briefing') {
+                return currentData.briefing[currentView] || [];
+            }
+            return [];
+        }
+
+        function getAllArticles() {
+            const allArticles = [];
+            ['ai', 'finance', 'politics'].forEach(category => {
+                if (currentData.briefing[category]) {
+                    allArticles.push(...currentData.briefing[category]);
+                }
+            });
+            return allArticles;
+        }
+
+        function applyFilters(articles) {
+            let filtered = [...articles];
+            
+            if (currentFilter === 'high') {
+                filtered = filtered.filter(a => a.priority === 'high');
+            } else if (currentFilter === 'unread') {
+                filtered = filtered.filter(a => !a.isRead);
+            }
+            
+            return filtered;
+        }
+
+        function displayAllCategories() {
+            let html = '';
+            
+            const categories = [
+                { key: 'ai', title: 'AI & Technology', icon: 'AI' },
+                { key: 'finance', title: 'Finance & Markets', icon: 'FIN' },
+                { key: 'politics', title: 'Politics & Policy', icon: 'POL' }
+            ];
+
+            categories.forEach(category => {
+                const articles = applyFilters(currentData.briefing[category.key] || []);
+                if (articles.length > 0) {
+                    const highPriorityCount = articles.filter(a => a.priority === 'high').length;
+                    const unreadCount = articles.filter(a => !a.isRead).length;
+                    
+                    html += `
+                        <div class="category-section">
+                            <div class="category-header">
+                                <span class="category-icon">${category.icon}</span>
+                                <h2 class="category-title">${category.title}</h2>
+                                <div class="category-stats">
+                                    ${highPriorityCount > 0 ? `<span class="category-count" style="background: #ff6b6b;">${highPriorityCount} high priority</span>` : ''}
+                                    <span class="category-count">${articles.length} articles</span>
+                                    ${unreadCount > 0 ? `<span class="category-count" style="background: #48dbfb;">${unreadCount} unread</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="articles-grid">
+                                ${articles.map(article => createArticleCard(article)).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            return html || '<div class="empty-state"><div class="empty-state-icon">∅</div><h3>No articles match current filters</h3><p>Try adjusting your filters or refresh to collect the latest news.</p></div>';
+        }
+
+        function displaySingleCategory(categoryKey) {
+            const articles = applyFilters(currentData.briefing[categoryKey] || []);
+            
+            if (articles.length === 0) {
+                return '<div class="empty-state"><div class="empty-state-icon">∅</div><h3>No articles match current filters</h3><p>Try adjusting your filters or refresh to collect the latest news.</p></div>';
+            }
+
+            return `
+                <div class="articles-grid">
+                    ${articles.map(article => createArticleCard(article)).join('')}
+                </div>
+            `;
+        }
+
+        function displayStarredArticles() {
+            const starredArticles = applyFilters(getAllArticles().filter(a => a.isStarred));
+            
+            if (starredArticles.length === 0) {
+                return '<div class="empty-state"><div class="empty-state-icon">⭐</div><h3>No starred articles yet</h3><p>Star articles you find interesting to save them for later reading.</p></div>';
+            }
+
+            return `
+                <div class="starred-section">
+                    <div class="articles-grid">
+                        ${starredArticles.map(article => createArticleCard(article)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayUnreadArticles() {
+            const unreadArticles = applyFilters(getAllArticles().filter(a => !a.isRead));
+            
+            if (unreadArticles.length === 0) {
+                return '<div class="empty-state"><div class="empty-state-icon">📖</div><h3>All caught up!</h3><p>You\'ve read all available articles. Check back later for new updates.</p></div>';
+            }
+
+            return `
+                <div class="articles-grid">
+                    ${unreadArticles.map(article => createArticleCard(article)).join('')}
+                </div>
+            `;
+        }
+
+        function createArticleCard(article) {
+            const tags = article.tags || [];
+            const tagsHtml = tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+            const readClass = article.isRead ? 'read' : '';
+            const starredClass = article.isStarred ? 'starred' : '';
+            const readIcon = article.isRead ? '✓' : '○';
+            const starIcon = article.isStarred ? '★' : '☆';
+            const readBtnClass = article.isRead ? 'read' : '';
+            const starBtnClass = article.isStarred ? 'starred' : '';
+            
+            return `
+                <article class="article-card ${readClass} ${starredClass}">
+                    <div class="article-actions">
+                        <button class="action-btn read-btn ${readBtnClass}" 
+                                onclick="markAsRead('${article.id}', this)" 
+                                title="Mark as read">
+                            ${readIcon}
+                        </button>
+                        <button class="action-btn star-btn ${starBtnClass}" 
+                                onclick="toggleStar('${article.id}', this)" 
+                                title="Star article">
+                            ${starIcon}
+                        </button>
+                    </div>
+                    <div class="priority-badge priority-${article.priority || 'medium'}">${article.priority || 'medium'}</div>
+                    
+                    <div class="article-header">
+                        <div class="article-meta">
+                            <span class="article-source">${article.source}</span>
+                            <div class="article-time-info">
+                                <span>${article.timeAgo}</span>
+                                <span class="reading-time">${article.readingTime || 2}min read</span>
+                            </div>
+                        </div>
+                        <h3 class="article-title" onclick="openArticle('${article.url}', this)">
+                            ${article.title}
+                        </h3>
+                    </div>
+                    
+                    <div class="article-content">
+                        ${article.aiSummary ? `
+                            <div class="article-summary" onclick="openArticle('${article.url}', this)" title="Click to read full article">
+                                ${article.aiSummary}
+                            </div>
+                        ` : ''}
+                        <p class="article-excerpt">${article.excerpt}</p>
+                        ${tagsHtml ? `<div class="article-tags">${tagsHtml}</div>` : ''}
+                    </div>
+                </article>
+            `;
+        }
+    </script>
+</body>
+</html>"""
+    return html_content
+
+# Enhanced API Endpoints
+@app.get("/api/morning-briefing")
+async def get_morning_briefing():
+    """Generate comprehensive morning briefing with daily overview"""
+    try:
+        with sqlite3.connect(news_engine.db_path) as conn:
+            briefing = {}
+            total_articles = 0
+            high_priority_count = 0
+            
+            for category in ['ai', 'finance', 'politics']:
+                cursor = conn.execute("""
+                    SELECT id, title, url, source, author, published_date, excerpt,
+                           ai_summary, priority, tags, reading_time, is_read, is_starred
+                    FROM articles 
+                    WHERE category = ? 
+                    ORDER BY 
+                        CASE priority 
+                            WHEN 'high' THEN 3 
+                            WHEN 'medium' THEN 2 
+                            ELSE 1 
+                        END DESC,
+                        published_date DESC
+                    LIMIT 20
+                """, (category,))
+                
+                articles = []
+                for row in cursor.fetchall():
+                    # Calculate time ago
+                    try:
+                        pub_date = datetime.fromisoformat(row[5])
+                        hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
+                        if hours_ago < 1:
+                            time_str = "Just now"
+                        elif hours_ago < 24:
+                            time_str = f"{hours_ago}h ago"
+                        else:
+                            days_ago = hours_ago // 24
+                            time_str = f"{days_ago}d ago"
+                    except:
+                        time_str = "Recently"
+                    
+                    is_high_priority = row[8] == 'high'
+                    if is_high_priority:
+                        high_priority_count += 1
+                    
+                    articles.append({
+                        'id': row[0],
+                        'title': row[1],
+                        'url': row[2],
+                        'source': row[3],
+                        'author': row[4] or 'Unknown',
+                        'publishedDate': row[5],
+                        'excerpt': row[6],
+                        'aiSummary': row[7],
+                        'priority': row[8],
+                        'tags': json.loads(row[9] or '[]'),
+                        'readingTime': row[10] or 2,
+                        'category': category,
+                        'timeAgo': time_str,
+                        'isRead': bool(row[11]),
+                        'isStarred': bool(row[12])
+                    })
+                
+                briefing[category] = articles
+                total_articles += len(articles)
+            
+            # Get daily overview
+            today = datetime.now().strftime('%Y-%m-%d')
+            cursor = conn.execute("""
+                SELECT overview_text FROM daily_overviews 
+                WHERE date = ? ORDER BY generated_at DESC LIMIT 1
+            """, (today,))
+            overview_result = cursor.fetchone()
+            daily_overview = overview_result[0] if overview_result else None
+            
+            # If no overview and we have articles, generate one
+            if not daily_overview and total_articles > 0:
+                daily_overview = "📰 Fresh articles have been collected and are ready for your review. New updates are automatically gathered every 30 minutes."
+            
+            return {
+                'platform': 'RPNews',
+                'date': datetime.now().strftime('%B %d, %Y'),
+                'briefing': briefing,
+                'daily_overview': daily_overview,
+                'generated_at': datetime.now().isoformat(),
+                'total_articles': total_articles,
+                'high_priority_count': high_priority_count,
+                'ai_type': news_engine.ai.ai_type,
+                'status': 'active',
+                'collection_frequency': '30 minutes',
+                'message': 'Your briefing is ready! Articles are automatically updated.'
+            }
+            
+    except Exception as e:
+        logger.error(f"Error generating briefing: {str(e)}")
+        return {
+            'platform': 'RPNews',
+            'date': datetime.now().strftime('%B %d, %Y'),
+            'briefing': {'ai': [], 'finance': [], 'politics': []},
+            'daily_overview': 'Your personalized briefing is being prepared. The news collection system is working in the background to gather the latest articles from premium sources.',
+            'error': 'Initial setup in progress',
+            'generated_at': datetime.now().isoformat(),
+            'total_articles': 0,
+            'high_priority_count': 0,
+            'status': 'initializing',
+            'message': 'Collection system is starting up. Fresh articles will appear within 30 minutes.'
+        }
+
+@app.post("/api/articles/{article_id}/read")
+async def mark_article_read(article_id: str):
+    """Mark an article as read"""
+    success = news_engine.mark_article_read(article_id)
+    if success:
+        return {'status': 'success', 'message': 'Article marked as read'}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to mark article as read")
+
+@app.post("/api/articles/{article_id}/star")
+async def star_article(article_id: str, request: dict):
+    """Star or unstar an article"""
+    starred = request.get('starred', True)
+    success = news_engine.star_article(article_id, starred)
+    if success:
+        action = 'starred' if starred else 'unstarred'
+        return {'status': 'success', 'message': f'Article {action}'}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to update article star status")
+
+@app.get("/api/articles/starred")
+async def get_starred_articles():
+    """Get all starred articles"""
+    try:
+        with sqlite3.connect(news_engine.db_path) as conn:
+            cursor = conn.execute("""
+                SELECT id, title, url, source, author, published_date, excerpt,
+                       ai_summary, category, priority, tags, reading_time, starred_at
+                FROM articles 
+                WHERE is_starred = TRUE
+                ORDER BY starred_at DESC
+                LIMIT 100
+            """)
+            
+            articles = []
+            for row in cursor.fetchall():
+                try:
+                    pub_date = datetime.fromisoformat(row[5])
+                    hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
+                    time_str = f"{hours_ago}h ago" if hours_ago < 24 else f"{hours_ago//24}d ago"
+                except:
+                    time_str = "Recently"
+                
+                articles.append({
+                    'id': row[0],
+                    'title': row[1],
+                    'url': row[2],
+                    'source': row[3],
+                    'author': row[4] or 'Unknown',
+                    'publishedDate': row[5],
+                    'excerpt': row[6],
+                    'aiSummary': row[7],
+                    'category': row[8],
+                    'priority': row[9],
+                    'tags': json.loads(row[10] or '[]'),
+                    'readingTime': row[11] or 2,
+                    'timeAgo': time_str,
+                    'starredAt': row[12],
+                    'isStarred': True
+                })
+            
+            return {
+                'articles': articles,
+                'count': len(articles),
+                'generated_at': datetime.now().isoformat()
+            }
+            
+    except Exception as e:
+        logger.error(f"Error getting starred articles: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get starred articles")
+
+@app.get("/api/articles/{category}")
+async def get_articles(category: str, limit: int = 50, priority: str = "all"):
+    """Get articles for a specific category with enhanced features"""
+    if category not in ['ai', 'finance', 'politics']:
+        raise HTTPException(status_code=400, detail="Category must be ai, finance, or politics")
+    
+    try:
+        with sqlite3.connect(news_engine.db_path) as conn:
+            query = """
+                SELECT id, title, url, source, author, published_date, excerpt,
+                       ai_summary, priority, tags, reading_time, is_read, is_starred
+                FROM articles 
+                WHERE category = ?
+            """
+            params = [category]
+            
+            if priority != "all":
+                query += " AND priority = ?"
+                params.append(priority)
+            
+            query += " ORDER BY published_date DESC LIMIT ?"
+            params.append(limit)
+            
+            cursor = conn.execute(query, params)
+            
+            articles = []
+            for row in cursor.fetchall():
+                try:
+                    pub_date = datetime.fromisoformat(row[5])
+                    hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
+                    time_str = f"{hours_ago}h ago" if hours_ago < 24 else f"{hours_ago//24}d ago"
+                except:
+                    time_str = "Recently"
+                
+                articles.append({
+                    'id': row[0],
+                    'title': row[1],
+                    'url': row[2],
+                    'source': row[3],
+                    'author': row[4] or 'Unknown',
+                    'publishedDate': row[5],
+                    'excerpt': row[6],
+                    'aiSummary': row[7],
+                    'priority': row[8],
+                    'tags': json.loads(row[9] or '[]'),
+                    'readingTime': row[10] or 2,
+                    'category': category,
+                    'timeAgo': time_str,
+                    'isRead': bool(row[11]),
+                    'isStarred': bool(row[12])
+                })
+            
+            category_names = {
+                'ai': 'AI & Technology',
+                'finance': 'Finance & Markets', 
+                'politics': 'Politics & Policy'
+            }
+            
+            return {
+                'category': category,
+                'category_name': category_names[category],
+                'articles': articles,
+                'count': len(articles),
+                'generated_at': datetime.now().isoformat()
+            }
+            
+    except Exception as e:
+        logger.error(f"Error getting {category} articles: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get {category} articles")
+
+@app.get("/api/stats")
+async def get_stats():
+    """Enhanced platform statistics"""
+    try:
+        with sqlite3.connect(news_engine.db_path) as conn:
+            stats = {}
+            
+            for category in ['ai', 'finance', 'politics']:
+                # Total articles
+                cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE category = ?", (category,))
+                stats[f'{category}_total'] = cursor.fetchone()[0]
+                
+                # Today's articles
+                cursor = conn.execute("""
+                    SELECT COUNT(*) FROM articles 
+                    WHERE category = ? AND published_date >= date('now')
+                """, (category,))
+                stats[f'{category}_today'] = cursor.fetchone()[0]
+                
+                # High priority today
+                cursor = conn.execute("""
+                    SELECT COUNT(*) FROM articles 
+                    WHERE category = ? AND priority = 'high' AND published_date >= date('now')
+                """, (category,))
+                stats[f'{category}_high_priority'] = cursor.fetchone()[0]
+            
+            # Reading stats
+            cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE is_read = TRUE")
+            stats['articles_read'] = cursor.fetchone()[0]
+            
+            cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE is_starred = TRUE")
+            stats['articles_starred'] = cursor.fetchone()[0]
+            
+            # Collection status
+            cursor = conn.execute("""
+                SELECT category, MAX(last_run), status FROM collection_stats
+                GROUP BY category ORDER BY last_run DESC
+            """)
+            
+            collection_status = {}
+            for row in cursor.fetchall():
+                collection_status[row[0]] = {
+                    'last_run': row[1],
+                    'status': row[2]
+                }
+            
+            # Source counts
+            stats['sources'] = {
+                'ai': len(news_engine.sources['ai']),
+                'finance': len(news_engine.sources['finance']),
+                'politics': len(news_engine.sources['politics'])
+            }
+            
+            # System status
+            stats['ai_type'] = news_engine.ai.ai_type
+            stats['collection_frequency'] = '30 minutes'
+            stats['collection_status'] = collection_status
+            stats['is_collecting'] = news_engine.is_collecting
+            
+            return stats
+            
+    except Exception as e:
+        logger.error(f"Error getting stats: {str(e)}")
+        return {
+            'error': 'Stats temporarily unavailable',
+            'ai_type': news_engine.ai.ai_type,
+            'collection_frequency': '30 minutes',
+            'sources': {
+                'ai': len(news_engine.sources['ai']),
+                'finance': len(news_engine.sources['finance']),
+                'politics': len(news_engine.sources['politics'])
+            }
+        }
+
+@app.post("/api/collect")
+async def trigger_collection(background_tasks: BackgroundTasks):
+    """Manual collection trigger"""
+    
+    async def run_collection():
+        try:
+            logger.info("Manual collection triggered")
+            await news_engine._run_collection_cycle()
+        except Exception as e:
+            logger.error(f"Manual collection error: {str(e)}")
+    
+    background_tasks.add_task(run_collection)
+    
+    return {
+        'message': 'Manual news collection started',
+        'timestamp': datetime.now().isoformat(),
+        'status': 'Background collection initiated',
+        'note': 'Articles will appear within a few minutes',
+        'automatic_collection': 'Every 30 minutes'
+    }
+
+@app.get("/api/health")
+async def health_check():
+    """Enhanced health check with detailed status"""
+    try:
+        # Test database connectivity
+        with sqlite3.connect(news_engine.db_path) as conn:
+            cursor = conn.execute("SELECT COUNT(*) FROM articles")
+            article_count = cursor.fetchone()[0]
+            
+            cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE is_read = TRUE")
+            read_count = cursor.fetchone()[0]
+            
+            cursor = conn.execute("SELECT COUNT(*) FROM articles WHERE is_starred = TRUE")
+            starred_count = cursor.fetchone()[0]
+            
+            # Get recent collection stats
+            cursor = conn.execute("""
+                SELECT category, MAX(last_run), MAX(articles_collected) 
+                FROM collection_stats 
+                GROUP BY category
+            """)
+            
+            recent_collections = {}
+            for row in cursor.fetchall():
+                recent_collections[row[0]] = {
+                    'last_run': row[1],
+                    'articles_collected': row[2] or 0
+                }
+        
+        return {
+            'status': 'healthy',
+            'platform': 'RPNews',
+            'timestamp': datetime.now().isoformat(),
+            'ai_type': news_engine.ai.ai_type,
+            'article_count': article_count,
+            'articles_read': read_count,
+            'articles_starred': starred_count,
+            'sources_count': sum(len(sources) for sources in news_engine.sources.values()),
+            'collection_frequency': '30 minutes',
+            'is_collecting': news_engine.is_collecting,
+            'recent_collections': recent_collections,
+            'database': 'connected',
+            'features': ['AI Summaries', 'Priority Detection', 'Auto Collection', 'Article Management']
+        }
+    except Exception as e:
+        return {
+            'status': 'unhealthy',
+            'platform': 'RPNews', 
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }
+
+if __name__ == "__main__":
+    logger.info("🚀 Starting RPNews Platform with Fixed RSS Feeds")
+    logger.info(f"🌐 Port: {PORT}")
+    logger.info(f"🤖 AI Engine: {news_engine.ai.ai_type}")
+    logger.info(f"📊 Total Sources: {sum(len(sources) for sources in news_engine.sources.values())}")
+    logger.info("🔄 Collection Frequency: Every 30 minutes")
+    logger.info("✨ Features: AI summaries, priority detection, auto-updates")
+    
+    uvicorn.run(app, host="0.0.0.0", port=PORT)
