@@ -51,25 +51,35 @@ class RPNewsAI:
     """Advanced AI news analysis with proper summarization"""
     
     def __init__(self):
-        self.ai_type = "transformer_based"
-        logger.info("🤖 Initializing transformer-based AI analysis")
+        self.ai_type = "enhanced_rules"
+        self.ai_available = False
+        logger.info("🤖 Initializing AI analysis system...")
         
         # Try to load actual AI model, fallback to enhanced rules
         try:
+            # Only try to import if transformers is available
+            import transformers
             from transformers import pipeline
+            
+            logger.info("📦 Transformers library found, attempting to load BART model...")
             self.summarizer = pipeline(
                 "summarization", 
                 model="facebook/bart-large-cnn",
-                device=-1  # CPU only for deployment
+                device=-1,  # CPU only for deployment
+                max_length=1024  # Limit model size
             )
             self.ai_available = True
+            self.ai_type = "transformer_based"
             logger.info("✅ BART summarization model loaded successfully")
+            
+        except ImportError:
+            logger.info("📝 Transformers not available, using enhanced rule-based analysis")
+            self.summarizer = None
+            
         except Exception as e:
             logger.warning(f"⚠️ Could not load transformer model: {e}")
             logger.info("📝 Falling back to enhanced rule-based analysis")
             self.summarizer = None
-            self.ai_available = False
-            self.ai_type = "enhanced_rules"
     
     def generate_summary(self, title: str, content: str, category: str) -> str:
         """Generate intelligent summary using AI or enhanced rules"""
