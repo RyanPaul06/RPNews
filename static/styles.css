@@ -276,6 +276,7 @@ body {
     border: 1px solid rgba(102, 126, 234, 0.1);
     position: relative;
     opacity: 1;
+    padding-top: 50px; /* Add space for top elements */
 }
 
 .article-card:hover {
@@ -292,7 +293,7 @@ body {
 }
 
 .article-header {
-    padding: 20px 25px 15px;
+    padding: 15px 25px;
     border-bottom: 1px solid #f8f9fa;
 }
 
@@ -301,6 +302,8 @@ body {
     align-items: center;
     justify-content: space-between;
     margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .article-source {
@@ -320,20 +323,22 @@ body {
 .reading-time {
     background: rgba(102, 126, 234, 0.1);
     color: #667eea;
-    padding: 2px 8px;
+    padding: 3px 8px;
     border-radius: 10px;
     font-size: 0.8em;
+    white-space: nowrap;
 }
 
 .priority-badge {
     position: absolute;
-    top: 15px;
-    right: 15px;
+    top: 10px;
+    right: 10px;
     padding: 4px 8px;
     border-radius: 6px;
-    font-size: 0.75em;
+    font-size: 0.7em;
     font-weight: 600;
     text-transform: uppercase;
+    z-index: 2;
 }
 
 .priority-high {
@@ -359,6 +364,7 @@ body {
     margin-bottom: 15px;
     cursor: pointer;
     transition: color 0.3s ease;
+    padding-right: 20px; /* Add space to avoid overlap with priority badge */
 }
 
 .article-title:hover {
@@ -367,15 +373,16 @@ body {
 
 .article-actions {
     position: absolute;
-    top: 15px;
-    left: 15px;
+    top: 10px;
+    left: 10px;
     display: flex;
-    gap: 5px;
+    gap: 8px;
+    z-index: 2;
 }
 
 .action-btn {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     border: none;
     cursor: pointer;
@@ -384,21 +391,25 @@ body {
     justify-content: center;
     font-size: 14px;
     transition: all 0.3s ease;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     color: #666;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .action-btn:hover {
     background: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    transform: scale(1.1);
 }
 
 .action-btn.read {
     color: #28a745;
+    background: rgba(40, 167, 69, 0.1);
 }
 
 .action-btn.starred {
     color: #ffd700;
+    background: rgba(255, 215, 0, 0.1);
 }
 
 .article-content {
