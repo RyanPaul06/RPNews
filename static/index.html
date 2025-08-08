@@ -1,1 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPNews - Enhanced News Intelligence</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="nav-container">
+            <div class="logo">RPNews Enhanced</div>
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-view="briefing">Daily Briefing</button>
+                <button class="nav-tab" data-view="ai">AI & Technology</button>
+                <button class="nav-tab" data-view="finance">Finance & Markets</button>
+                <button class="nav-tab" data-view="politics">Politics & Policy</button>
+                <button class="nav-tab" data-view="starred">⭐ Starred</button>
+            </div>
+            <div class="controls">
+                <button class="control-btn secondary" data-view="reading-list">📖 Reading List</button>
+                <button class="control-btn" onclick="refreshNews()">
+                    <span id="refresh-icon">↻</span> Refresh
+                </button>
+            </div>
+        </div>
+    </header>
 
+    <div class="container">
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <h3>Loading enhanced news intelligence...</h3>
+            <p>Processing articles with AI summaries from 60+ premium sources</p>
+        </div>
+
+        <div id="content" style="display: none;">
+            <div class="briefing-header">
+                <h1 class="briefing-title">Enhanced Daily Intelligence Briefing</h1>
+                <p class="briefing-date" id="briefing-date"></p>
+                
+                <div id="daily-overview" class="daily-overview" style="display: none;">
+                    <div class="overview-title">🌅 Daily Overview</div>
+                    <div id="overview-text"></div>
+                </div>
+                
+                <div class="stats-bar" id="stats-bar"></div>
+            </div>
+
+            <div class="view-controls">
+                <div class="filter-controls">
+                    <button class="filter-btn active" data-filter="all">All Priority</button>
+                    <button class="filter-btn" data-filter="high">High Priority</button>
+                    <button class="filter-btn" data-filter="unread">Unread Only</button>
+                </div>
+            </div>
+
+            <div id="news-content"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
