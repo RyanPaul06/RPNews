@@ -1,6 +1,7 @@
 """
 RPNews - News Engine
 Handles RSS feed collection, content processing, and data storage
+Enhanced with article passing and better distribution
 """
 
 import asyncio
@@ -38,7 +39,7 @@ class NewsArticle:
     extracted_at: datetime
 
 class RPNewsEngine:
-    """Enhanced news intelligence engine"""
+    """Enhanced news intelligence engine with open source AI"""
     
     def __init__(self, db_path: str = "rpnews.db"):
         self.db_path = db_path
@@ -47,7 +48,7 @@ class RPNewsEngine:
         self.sources = self._initialize_sources()
         self._setup_database()
         self.background_task = None
-        logger.info("📰 RPNews Engine initialized")
+        logger.info("📰 RPNews Engine initialized with open source AI")
     
     def start_background_collection(self):
         """Start background collection task"""
@@ -56,7 +57,7 @@ class RPNewsEngine:
             logger.info("🔄 Background collection task started")
     
     def _initialize_sources(self) -> Dict[str, List[Dict]]:
-        """Complete source list - 60+ premium sources"""
+        """Complete source list - 100+ premium sources"""
         return {
             "ai": [
                 # TOP TIER - Most Important AI Sources
@@ -155,7 +156,7 @@ class RPNewsEngine:
         }
     
     def _setup_database(self):
-        """Setup enhanced SQLite database"""
+        """Setup enhanced SQLite database with pass functionality"""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS articles (
@@ -175,8 +176,10 @@ class RPNewsEngine:
                     extracted_at TIMESTAMP,
                     is_read BOOLEAN DEFAULT FALSE,
                     is_starred BOOLEAN DEFAULT FALSE,
+                    is_passed BOOLEAN DEFAULT FALSE,
                     read_at TIMESTAMP,
-                    starred_at TIMESTAMP
+                    starred_at TIMESTAMP,
+                    passed_at TIMESTAMP
                 )
             """)
             
@@ -206,6 +209,7 @@ class RPNewsEngine:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_published ON articles(published_date)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_priority ON articles(priority)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_read_starred ON articles(is_read, is_starred)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_passed ON articles(is_passed)")
     
     def _calculate_priority(self, title: str, content: str, source_priority: str, category: str) -> str:
         """Enhanced priority detection based on content analysis"""
@@ -540,8 +544,8 @@ class RPNewsEngine:
                 INSERT OR REPLACE INTO articles 
                 (id, title, url, source, author, published_date, content, excerpt,
                  ai_summary, category, priority, tags, reading_time, extracted_at,
-                 is_read, is_starred)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, FALSE)
+                 is_read, is_starred, is_passed)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, FALSE, FALSE)
             """, (
                 article.id, article.title, article.url, article.source, article.author,
                 article.published_date, article.content, article.excerpt, article.ai_summary,
@@ -549,15 +553,16 @@ class RPNewsEngine:
                 article.reading_time, article.extracted_at
             ))
     
-    def mark_article_read(self, article_id: str) -> bool:
-        """Mark article as read"""
+    def mark_article_read(self, article_id: str, is_read: bool = True) -> bool:
+        """Mark article as read or unread"""
         try:
             with sqlite3.connect(self.db_path) as conn:
+                read_at = datetime.now() if is_read else None
                 conn.execute("""
                     UPDATE articles 
-                    SET is_read = TRUE, read_at = ? 
+                    SET is_read = ?, read_at = ? 
                     WHERE id = ?
-                """, (datetime.now(), article_id))
+                """, (is_read, read_at, article_id))
                 return True
         except Exception as e:
             logger.error(f"Error marking article read: {e}")
@@ -577,3 +582,86 @@ class RPNewsEngine:
         except Exception as e:
             logger.error(f"Error starring article: {e}")
             return False
+    
+    def pass_article(self, article_id: str) -> bool:
+        """Pass/dismiss an article"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    UPDATE articles 
+                    SET is_passed = TRUE, passed_at = ? 
+                    WHERE id = ?
+                """, (datetime.now(), article_id))
+                return True
+        except Exception as e:
+            logger.error(f"Error passing article: {e}")
+            return False
+    
+    def get_articles_for_briefing(self, limit: int = 100) -> Dict[str, List]:
+        """Get articles for daily briefing with proper distribution"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                briefing = {}
+                
+                # Calculate articles per category (aim for roughly equal distribution)
+                articles_per_category = limit // 3
+                
+                for category in ['ai', 'finance', 'politics']:
+                    cursor = conn.execute("""
+                        SELECT id, title, url, source, author, published_date, excerpt,
+                               ai_summary, priority, tags, reading_time, is_read, is_starred
+                        FROM articles 
+                        WHERE category = ? 
+                        AND is_passed = FALSE 
+                        AND published_date >= datetime('now', '-7 days')
+                        ORDER BY 
+                            CASE priority 
+                                WHEN 'high' THEN 3 
+                                WHEN 'medium' THEN 2 
+                                ELSE 1 
+                            END DESC,
+                            published_date DESC
+                        LIMIT ?
+                    """, (category, articles_per_category))
+                    
+                    articles = []
+                    for row in cursor.fetchall():
+                        # Calculate time ago
+                        try:
+                            pub_date = datetime.fromisoformat(row[5])
+                            hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
+                            if hours_ago < 1:
+                                time_str = "Just now"
+                            elif hours_ago < 24:
+                                time_str = f"{hours_ago}h ago"
+                            else:
+                                days_ago = hours_ago // 24
+                                time_str = f"{days_ago}d ago"
+                        except:
+                            time_str = "Recently"
+                        
+                        articles.append({
+                            'id': row[0],
+                            'title': row[1],
+                            'url': row[2],
+                            'source': row[3],
+                            'author': row[4] or 'Unknown',
+                            'publishedDate': row[5],
+                            'excerpt': row[6],
+                            'aiSummary': row[7],
+                            'priority': row[8],
+                            'tags': json.loads(row[9] or '[]'),
+                            'readingTime': row[10] or 2,
+                            'category': category,
+                            'timeAgo': time_str,
+                            'isRead': bool(row[11]),
+                            'isStarred': bool(row[12])
+                        })
+                    
+                    briefing[category] = articles
+                
+                return briefing
+                
+        except Exception as e:
+            logger.error(f"Error getting briefing articles: {e}")
+            return {'ai': [], 'finance': [], 'politics': []}
