@@ -412,6 +412,16 @@ body {
     background: rgba(255, 215, 0, 0.1);
 }
 
+.action-btn.pass-btn {
+    color: #dc3545;
+    background: rgba(220, 53, 69, 0.1);
+}
+
+.action-btn.pass-btn:hover {
+    background: rgba(220, 53, 69, 0.2);
+    color: #c82333;
+}
+
 .article-content {
     padding: 0 25px 20px;
 }
