@@ -1,6 +1,6 @@
 """
 RPNews - Main Backend Server
-Coordinates all components and serves the application
+Coordinates all components and serves the application with open source LLMs
 """
 
 import os
@@ -23,7 +23,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI application
-app = FastAPI(title="RPNews - Enhanced AI News Intelligence", version="2.0.0")
+app = FastAPI(title="RPNews - Enhanced AI News Intelligence with Open Source LLMs", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -60,13 +60,23 @@ async def get_morning_briefing():
 
 @app.post("/api/articles/{article_id}/read")
 async def mark_article_read(article_id: str):
-    """Mark an article as read"""
+    """Toggle article read status"""
     return await api_routes.mark_article_read(article_id)
 
 @app.post("/api/articles/{article_id}/star")
 async def star_article(article_id: str, request: dict):
     """Star or unstar an article"""
     return await api_routes.star_article(article_id, request)
+
+@app.post("/api/articles/{article_id}/pass")
+async def pass_article(article_id: str):
+    """Pass/dismiss an article"""
+    return await api_routes.pass_article(article_id)
+
+@app.get("/api/reading-list")
+async def get_reading_list():
+    """Get unread articles (reading list)"""
+    return await api_routes.get_reading_list()
 
 @app.get("/api/articles/starred")
 async def get_starred_articles():
@@ -94,12 +104,12 @@ async def health_check():
     return await api_routes.health_check()
 
 if __name__ == "__main__":
-    logger.info("🚀 Starting Enhanced RPNews Platform")
+    logger.info("🚀 Starting Enhanced RPNews Platform with Open Source LLMs")
     logger.info(f"🌐 Port: {PORT}")
     logger.info(f"🤖 AI Engine: {news_engine.ai.ai_type}")
-    logger.info(f"🎯 AI Model Available: {news_engine.ai.ai_available}")
+    logger.info(f"🎯 AI Available: {news_engine.ai.ai_available}")
     logger.info(f"📊 Total Sources: {sum(len(sources) for sources in news_engine.sources.values())}")
-    logger.info("✨ Enhanced Features: AI summaries, priority detection, article management")
+    logger.info("✨ Features: Open source LLM summaries, article management, pass system")
     logger.info("📂 Serving frontend from: static/")
     
     uvicorn.run(app, host="0.0.0.0", port=PORT)
