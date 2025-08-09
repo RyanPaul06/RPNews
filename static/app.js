@@ -1,4 +1,4 @@
-// RPNews Enhanced - Frontend JavaScript
+// RPNews Enhanced - Frontend JavaScript with Open Source LLM Support
 
 let currentData = null;
 let currentView = 'briefing';
@@ -20,10 +20,18 @@ function setupNavigation() {
             
             // Switch view
             currentView = this.dataset.view;
-            if (currentData) {
+            if (currentData || currentView === 'reading-list') {
                 displayContent();
             }
         });
+    });
+    
+    // Handle reading list button
+    document.querySelector('[data-view="reading-list"]').addEventListener('click', function() {
+        currentView = 'reading-list';
+        // Update nav tabs
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        displayContent();
     });
 }
 
@@ -59,6 +67,25 @@ async function loadBriefing() {
     }
 }
 
+async function loadReadingList() {
+    try {
+        showLoading();
+        const response = await fetch('/api/reading-list');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const readingListData = await response.json();
+        console.log('Reading list loaded:', readingListData);
+        return readingListData;
+    } catch (error) {
+        console.error('Error loading reading list:', error);
+        showError(error.message);
+        return null;
+    }
+}
+
 async function refreshNews() {
     const refreshIcon = document.getElementById('refresh-icon');
     refreshIcon.style.animation = 'spin 1s linear infinite';
@@ -73,7 +100,11 @@ async function refreshNews() {
         
         // Wait a moment then reload
         setTimeout(async () => {
-            await loadBriefing();
+            if (currentView === 'reading-list') {
+                await displayContent(); // Will reload reading list
+            } else {
+                await loadBriefing();
+            }
             refreshIcon.style.animation = 'none';
         }, 5000);
     } catch (error) {
@@ -88,16 +119,27 @@ async function markAsRead(articleId, element) {
         const response = await fetch(`/api/articles/${articleId}/read`, { method: 'POST' });
         
         if (!response.ok) {
-            throw new Error(`Failed to mark as read: ${response.statusText}`);
+            throw new Error(`Failed to toggle read status: ${response.statusText}`);
         }
         
-        element.closest('.article-card').classList.add('read');
+        const result = await response.json();
+        const card = element.closest('.article-card');
         const btn = element.closest('.article-card').querySelector('.read-btn');
-        btn.classList.add('read');
-        btn.innerHTML = '✓';
+        
+        if (result.isRead) {
+            card.classList.add('read');
+            btn.classList.add('read');
+            btn.innerHTML = '✓';
+            btn.title = 'Mark as unread';
+        } else {
+            card.classList.remove('read');
+            btn.classList.remove('read');
+            btn.innerHTML = '○';
+            btn.title = 'Mark as read';
+        }
     } catch (error) {
-        console.error('Error marking as read:', error);
-        alert('Failed to mark as read: ' + error.message);
+        console.error('Error toggling read status:', error);
+        alert('Failed to toggle read status: ' + error.message);
     }
 }
 
@@ -116,18 +158,45 @@ async function toggleStar(articleId, element) {
             throw new Error(`Failed to toggle star: ${response.statusText}`);
         }
         
-        if (isStarred) {
-            card.classList.remove('starred');
-            element.innerHTML = '☆';
-            element.classList.remove('starred');
-        } else {
+        const result = await response.json();
+        
+        if (result.isStarred) {
             card.classList.add('starred');
             element.innerHTML = '★';
             element.classList.add('starred');
+        } else {
+            card.classList.remove('starred');
+            element.innerHTML = '☆';
+            element.classList.remove('starred');
         }
     } catch (error) {
         console.error('Error toggling star:', error);
         alert('Failed to toggle star: ' + error.message);
+    }
+}
+
+async function passArticle(articleId, element) {
+    try {
+        const response = await fetch(`/api/articles/${articleId}/pass`, { method: 'POST' });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to pass article: ${response.statusText}`);
+        }
+        
+        // Remove the article card with animation
+        const card = element.closest('.article-card');
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(-100px)';
+        
+        setTimeout(() => {
+            card.remove();
+            // Update stats if needed
+            updateStatsBar();
+        }, 300);
+        
+    } catch (error) {
+        console.error('Error passing article:', error);
+        alert('Failed to pass article: ' + error.message);
     }
 }
 
@@ -163,8 +232,45 @@ function showError(message = 'Unknown error occurred') {
     `;
 }
 
-function displayContent() {
+async function displayContent() {
     hideLoading();
+    
+    // Handle reading list view
+    if (currentView === 'reading-list') {
+        const readingListData = await loadReadingList();
+        if (!readingListData) return;
+        
+        document.getElementById('briefing-date').textContent = 'Reading List';
+        document.getElementById('daily-overview').style.display = 'none';
+        
+        // Update stats for reading list
+        const statsBar = document.getElementById('stats-bar');
+        const highPriorityCount = readingListData.articles.filter(a => a.priority === 'high').length;
+        
+        statsBar.innerHTML = `
+            <div class="stat-item">
+                <div class="stat-number">${readingListData.count}</div>
+                <div class="stat-label">Unread Articles</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">${highPriorityCount}</div>
+                <div class="stat-label">High Priority</div>
+            </div>
+        `;
+        
+        const contentDiv = document.getElementById('news-content');
+        if (readingListData.articles.length === 0) {
+            contentDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📖</div><h3>All caught up!</h3><p>You\'ve read all available articles. Check back later for new updates.</p></div>';
+        } else {
+            const filteredArticles = applyFilters(readingListData.articles);
+            contentDiv.innerHTML = `
+                <div class="articles-grid">
+                    ${filteredArticles.map(article => createArticleCard(article, true)).join('')}
+                </div>
+            `;
+        }
+        return;
+    }
     
     if (!currentData || !currentData.briefing) {
         showError('No briefing data available');
@@ -196,8 +302,6 @@ function displayContent() {
             contentDiv.innerHTML = displayAllCategories();
         } else if (currentView === 'starred') {
             contentDiv.innerHTML = displayStarredArticles();
-        } else if (currentView === 'reading-list') {
-            contentDiv.innerHTML = displayUnreadArticles();
         } else {
             contentDiv.innerHTML = displaySingleCategory(currentView);
         }
@@ -361,21 +465,7 @@ function displayStarredArticles() {
     `;
 }
 
-function displayUnreadArticles() {
-    const unreadArticles = applyFilters(getAllArticles().filter(a => !a.isRead));
-    
-    if (unreadArticles.length === 0) {
-        return '<div class="empty-state"><div class="empty-state-icon">📖</div><h3>All caught up!</h3><p>You\'ve read all available articles. Check back later for new updates.</p></div>';
-    }
-
-    return `
-        <div class="articles-grid">
-            ${unreadArticles.map(article => createArticleCard(article)).join('')}
-        </div>
-    `;
-}
-
-function createArticleCard(article) {
+function createArticleCard(article, showPassButton = false) {
     const tags = article.tags || [];
     const tagsHtml = tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
     const readClass = article.isRead ? 'read' : '';
@@ -384,20 +474,37 @@ function createArticleCard(article) {
     const starIcon = article.isStarred ? '★' : '☆';
     const readBtnClass = article.isRead ? 'read' : '';
     const starBtnClass = article.isStarred ? 'starred' : '';
+    const readTitle = article.isRead ? 'Mark as unread' : 'Mark as read';
+    
+    // Create action buttons
+    let actionButtons = `
+        <button class="action-btn read-btn ${readBtnClass}" 
+                onclick="markAsRead('${escapeHtml(article.id)}', this)" 
+                title="${readTitle}">
+            ${readIcon}
+        </button>
+        <button class="action-btn star-btn ${starBtnClass}" 
+                onclick="toggleStar('${escapeHtml(article.id)}', this)" 
+                title="Star article">
+            ${starIcon}
+        </button>
+    `;
+    
+    // Add pass button for reading list and main briefing
+    if (showPassButton || currentView === 'briefing') {
+        actionButtons += `
+            <button class="action-btn pass-btn" 
+                    onclick="passArticle('${escapeHtml(article.id)}', this)" 
+                    title="Pass/dismiss article">
+                ✕
+            </button>
+        `;
+    }
     
     return `
         <article class="article-card ${readClass} ${starredClass}">
             <div class="article-actions">
-                <button class="action-btn read-btn ${readBtnClass}" 
-                        onclick="markAsRead('${escapeHtml(article.id)}', this)" 
-                        title="Mark as read">
-                    ${readIcon}
-                </button>
-                <button class="action-btn star-btn ${starBtnClass}" 
-                        onclick="toggleStar('${escapeHtml(article.id)}', this)" 
-                        title="Star article">
-                    ${starIcon}
-                </button>
+                ${actionButtons}
             </div>
             <div class="priority-badge priority-${article.priority || 'medium'}">${article.priority || 'medium'}</div>
             
