@@ -125,7 +125,8 @@ class APIRoutes:
             with sqlite3.connect(self.news_engine.db_path) as conn:
                 cursor = conn.execute("""
                     SELECT id, title, url, source, author, published_date, excerpt,
-                           ai_summary, category, priority, tags, reading_time
+                           ai_summary, category, priority, tags, reading_time,
+                           is_read, is_starred
                     FROM articles 
                     WHERE is_read = FALSE AND is_passed = FALSE
                     ORDER BY 
@@ -167,8 +168,8 @@ class APIRoutes:
                         'tags': json.loads(row[10] or '[]'),
                         'readingTime': row[11] or 2,
                         'timeAgo': time_str,
-                        'isRead': False,
-                        'isStarred': False
+                        'isRead': bool(row[12]),
+                        'isStarred': bool(row[13])
                     })
                 
                 return {
