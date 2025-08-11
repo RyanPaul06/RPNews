@@ -5,6 +5,10 @@ feedparser==6.0.11
 beautifulsoup4==4.12.3
 python-multipart==0.0.12
 
+# SSL Certificate handling
+certifi>=2023.7.22
+urllib3>=1.26.0
+
 # Open Source AI/ML Libraries
 transformers>=4.35.0
 torch>=2.0.0

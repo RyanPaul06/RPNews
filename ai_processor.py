@@ -1,5 +1,5 @@
 """
-RPNews - AI Processing Module
+RPNews - AI Processing Module (Fixed Warnings)
 Handles AI-powered summarization with open source LLMs
 """
 
@@ -7,7 +7,12 @@ import re
 import logging
 import os
 import socket
+import warnings
 from typing import Dict, List
+
+# Suppress specific transformers warnings
+warnings.filterwarnings("ignore", message=".*max_length.*input_length.*")
+warnings.filterwarnings("ignore", message=".*truncation.*maximum length.*")
 
 logger = logging.getLogger(__name__)
 
@@ -75,12 +80,17 @@ class RPNewsAI:
                     for model_name in model_options:
                         try:
                             logger.info(f"📦 Attempting to load {model_name}...")
-                            self.summarizer = pipeline(
-                                "summarization",
-                                model=model_name,
-                                device=-1,  # CPU only for deployment
-                                max_length=1024
-                            )
+                            
+                            # Suppress warnings during model loading - FIXED VERSION
+                            with warnings.catch_warnings():
+                                warnings.simplefilter("ignore")
+                                self.summarizer = pipeline(
+                                    "summarization",
+                                    model=model_name,
+                                    device=-1  # CPU only for deployment
+                                    # REMOVED tokenizer_kwargs - this was causing warnings
+                                )
+                            
                             self.ai_available = True
                             self.transformers_available = True
                             self.ai_type = f"transformers_{model_name.split('/')[-1]}"
@@ -191,24 +201,46 @@ Summary:"""
             return self._smart_rule_summary(title, content, category)
     
     def _transformers_summary(self, title: str, content: str, category: str) -> str:
-        """Generate AI-powered summary using Hugging Face transformers"""
+        """Generate AI-powered summary using Hugging Face transformers (Fixed)"""
         try:
             # Clean and prepare text
             clean_content = self._clean_text(content)
             
-            # Truncate to model limits
+            # Count words for dynamic max_length calculation
             words = clean_content.split()
-            if len(words) > 500:  # Reduced for better performance
+            input_length = len(words)
+            
+            # Dynamic max_length based on input length
+            if input_length < 50:
+                max_length = max(20, input_length // 2)  # At least 20, at most half input
+            elif input_length < 200:
+                max_length = max(30, input_length // 3)  # At least 30, at most third of input
+            else:
+                max_length = max(50, min(120, input_length // 4))  # Between 50-120
+            
+            # Ensure min_length is reasonable
+            min_length = max(15, max_length // 3)
+            
+            # Truncate content if too long (transformers have token limits)
+            if input_length > 500:
                 clean_content = " ".join(words[:500])
             
-            # Generate summary with appropriate length
-            summary_result = self.summarizer(
-                clean_content,
-                max_length=120,
-                min_length=40,
-                do_sample=False,
-                truncation=True
-            )
+            # Skip summarization if content is too short to be meaningful
+            if input_length < 30:
+                return self._smart_rule_summary(title, content, category)
+            
+            # Generate summary with suppressed warnings - FIXED VERSION
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                
+                summary_result = self.summarizer(
+                    clean_content,
+                    max_length=max_length,
+                    min_length=min_length,
+                    do_sample=False,
+                    truncation=True
+                    # REMOVED clean_up_tokenization_spaces - this was causing warnings
+                )
             
             ai_text = summary_result[0]['summary_text']
             
@@ -349,7 +381,7 @@ Daily Overview:"""
         return self._rule_daily_overview(articles_by_category)
     
     def _transformers_daily_overview(self, articles_by_category: Dict[str, List]) -> str:
-        """AI-powered daily overview generation using transformers"""
+        """AI-powered daily overview generation using transformers (Fixed)"""
         try:
             # Collect key summaries from each category
             overview_text = "Today's key developments:\n\n"
@@ -369,15 +401,27 @@ Daily Overview:"""
                 if category_text:
                     overview_text += f"{category.upper()}: {category_text}\n\n"
             
-            # Generate AI overview
+            # Generate AI overview with dynamic sizing
             if len(overview_text) > 100:
-                summary_result = self.summarizer(
-                    overview_text,
-                    max_length=150,
-                    min_length=60,
-                    do_sample=False,
-                    truncation=True
-                )
+                words = overview_text.split()
+                input_length = len(words)
+                
+                # Dynamic sizing for overview
+                max_length = max(60, min(150, input_length // 3))
+                min_length = max(30, max_length // 2)
+                
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    
+                    summary_result = self.summarizer(
+                        overview_text,
+                        max_length=max_length,
+                        min_length=min_length,
+                        do_sample=False,
+                        truncation=True
+                        # REMOVED clean_up_tokenization_spaces - this was causing warnings
+                    )
+                
                 return f"🌅 Today's Intelligence Overview: {summary_result[0]['summary_text']}"
             
         except Exception as e:

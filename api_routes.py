@@ -1,5 +1,5 @@
 """
-RPNews - API Routes
+RPNews - API Routes (Updated with Article Detail & Chat)
 Handles all HTTP endpoints and API logic with enhanced functionality
 """
 
@@ -8,9 +8,17 @@ import logging
 import sqlite3
 from datetime import datetime
 from fastapi import HTTPException, BackgroundTasks
+from pydantic import BaseModel
 import aiohttp
 
 logger = logging.getLogger(__name__)
+
+class ChatRequest(BaseModel):
+    articleId: str
+    message: str
+    articleTitle: str
+    articleContent: str
+    aiSummary: str = None
 
 class APIRoutes:
     """API endpoint handlers with enhanced functionality"""
@@ -70,9 +78,216 @@ class APIRoutes:
                 'suggestion': 'Try clicking "Refresh" to collect the latest news'
             }
     
+    async def get_article_detail(self, article_id: str):
+        """Get detailed article information for the article detail page"""
+        try:
+            with sqlite3.connect(self.news_engine.db_path) as conn:
+                cursor = conn.execute("""
+                    SELECT id, title, url, source, author, published_date, content, excerpt,
+                           ai_summary, category, priority, tags, reading_time, is_read, is_starred
+                    FROM articles 
+                    WHERE id = ?
+                """, (article_id,))
+                
+                row = cursor.fetchone()
+                if not row:
+                    raise HTTPException(status_code=404, detail="Article not found")
+                
+                # Calculate time ago
+                try:
+                    pub_date = datetime.fromisoformat(row[5])
+                    hours_ago = int((datetime.now() - pub_date).total_seconds() / 3600)
+                    if hours_ago < 1:
+                        time_str = "Just now"
+                    elif hours_ago < 24:
+                        time_str = f"{hours_ago}h ago"
+                    else:
+                        days_ago = hours_ago // 24
+                        time_str = f"{days_ago}d ago"
+                except:
+                    time_str = "Recently"
+                
+                article = {
+                    'id': row[0],
+                    'title': row[1],
+                    'url': row[2],
+                    'source': row[3],
+                    'author': row[4] or 'Unknown',
+                    'publishedDate': row[5],
+                    'content': row[6] or row[7],  # Use full content if available, else excerpt
+                    'excerpt': row[7],
+                    'aiSummary': row[8],
+                    'category': row[9],
+                    'priority': row[10],
+                    'tags': json.loads(row[11] or '[]'),
+                    'readingTime': row[12] or 2,
+                    'timeAgo': time_str,
+                    'isRead': bool(row[13]),
+                    'isStarred': bool(row[14])
+                }
+                
+                # Mark as read when viewing detail
+                self.news_engine.mark_article_read(article_id, True)
+                
+                return article
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error getting article detail: {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to get article detail")
+    
+    async def chat_about_article(self, chat_request: ChatRequest):
+        """Handle AI chat about a specific article"""
+        try:
+            # Get the article context
+            article_context = f"""
+            Article Title: {chat_request.articleTitle}
+            Article Content: {chat_request.articleContent}
+            AI Summary: {chat_request.aiSummary or 'No summary available'}
+            
+            User Question: {chat_request.message}
+            """
+            
+            # Generate AI response based on available AI system
+            if self.news_engine.ai.ollama_available:
+                response = await self._chat_with_ollama(article_context, chat_request.message)
+            elif self.news_engine.ai.transformers_available:
+                response = await self._chat_with_transformers(article_context, chat_request.message)
+            else:
+                response = await self._chat_with_rules(article_context, chat_request.message)
+            
+            return {
+                'response': response,
+                'timestamp': datetime.now().isoformat(),
+                'ai_type': self.news_engine.ai.ai_type
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in article chat: {str(e)}")
+            return {
+                'response': "I apologize, but I encountered an error processing your question. Could you try rephrasing it?",
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            }
+    
+    async def _chat_with_ollama(self, article_context: str, user_question: str) -> str:
+        """Generate chat response using Ollama"""
+        try:
+            import requests
+            
+            prompt = f"""You are an AI assistant helping users understand news articles. Based on the article information provided, answer the user's question in a helpful, informative way.
+
+            {article_context}
+            
+            Please provide a clear, concise answer that directly addresses the user's question. If the question is about implications or analysis, provide thoughtful insights based on the article content.
+            
+            Answer:"""
+            
+            response = requests.post(
+                f"{self.news_engine.ai.ollama_url}/api/generate",
+                json={
+                    "model": self.news_engine.ai.ollama_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.7,
+                        "top_p": 0.9,
+                        "max_tokens": 300
+                    }
+                },
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                answer = result.get("response", "").strip()
+                return answer if answer else "I don't have enough information to answer that question."
+            else:
+                return "I'm having trouble processing your question right now. Please try again."
+                
+        except Exception as e:
+            logger.error(f"Ollama chat error: {e}")
+            return "I'm having trouble processing your question right now. Please try again."
+    
+    async def _chat_with_transformers(self, article_context: str, user_question: str) -> str:
+        """Generate chat response using transformers (limited capability)"""
+        try:
+            # For transformers, we'll provide rule-based responses since they're mainly for summarization
+            return await self._chat_with_rules(article_context, user_question)
+            
+        except Exception as e:
+            logger.error(f"Transformers chat error: {e}")
+            return "I'm having trouble processing your question right now. Please try again."
+    
+    async def _chat_with_rules(self, article_context: str, user_question: str) -> str:
+        """Generate chat response using rule-based logic"""
+        try:
+            question_lower = user_question.lower()
+            article_content = article_context.lower()
+            
+            # Extract article title and content for better responses
+            lines = article_context.split('\n')
+            title = ""
+            content = ""
+            summary = ""
+            
+            for line in lines:
+                if line.startswith("Article Title:"):
+                    title = line.replace("Article Title:", "").strip()
+                elif line.startswith("Article Content:"):
+                    content = line.replace("Article Content:", "").strip()
+                elif line.startswith("AI Summary:"):
+                    summary = line.replace("AI Summary:", "").strip()
+            
+            # Question pattern matching
+            if any(word in question_lower for word in ['takeaway', 'key point', 'main point', 'summary']):
+                if summary and summary != 'No summary available':
+                    return f"The key takeaways from this article are: {summary}"
+                else:
+                    # Extract key points from content
+                    sentences = content.split('.')
+                    key_sentences = [s.strip() for s in sentences[:3] if len(s.strip()) > 20]
+                    return f"Based on the article content, the main points are: {'. '.join(key_sentences)}."
+            
+            elif any(word in question_lower for word in ['implication', 'impact', 'effect', 'consequence']):
+                if 'ai' in article_content or 'technology' in article_content:
+                    return f"This development in AI/technology could impact the industry by potentially changing how companies approach innovation and competition. The implications may include shifts in market dynamics, regulatory considerations, and technological adoption patterns."
+                elif 'finance' in article_content or 'market' in article_content or 'economic' in article_content:
+                    return f"The financial implications of this news could affect market sentiment, investor confidence, and economic policy decisions. This may influence trading patterns, investment strategies, and regulatory responses."
+                elif 'politic' in article_content or 'government' in article_content or 'policy' in article_content:
+                    return f"The political implications include potential policy changes, shifts in public opinion, and impacts on governance. This could affect legislative priorities, electoral dynamics, and public policy direction."
+                else:
+                    return f"The implications of this development could be significant across multiple sectors, potentially affecting stakeholder decisions, market conditions, and future strategic planning."
+            
+            elif any(word in question_lower for word in ['trend', 'pattern', 'relate', 'connection']):
+                return f"This article relates to current trends by reflecting ongoing developments in its sector. It connects to broader patterns of change, innovation, and adaptation that we're seeing across industries. Understanding these connections helps contextualize the significance of this particular development."
+            
+            elif any(word in question_lower for word in ['should know', 'important', 'background', 'context']):
+                return f"What you should know about this topic: {title} represents an important development that fits into larger industry and societal trends. The key context is understanding how this affects stakeholders, what precedents it sets, and what it might signal for future developments in this area."
+            
+            elif any(word in question_lower for word in ['why', 'reason', 'cause']):
+                return f"The reasons behind this development likely include market forces, technological advancement, regulatory changes, or strategic business decisions. Understanding the 'why' helps predict future similar developments and their potential impacts."
+            
+            elif any(word in question_lower for word in ['what', 'explain', 'tell me about']):
+                return f"This article discusses: {title}. {summary if summary and summary != 'No summary available' else content[:200] + '...'} The significance lies in its potential impact on the relevant industry and stakeholders."
+            
+            elif any(word in question_lower for word in ['future', 'next', 'predict', 'expect']):
+                return f"Looking forward, this development could lead to further innovations, policy changes, or market shifts in the same direction. Future developments might build on this foundation, creating new opportunities and challenges for stakeholders."
+            
+            elif any(word in question_lower for word in ['who', 'affect', 'impact']):
+                return f"This development affects various stakeholders including companies in the sector, consumers, investors, regulators, and potentially the broader public. The specific impacts depend on their roles and interests in relation to this topic."
+            
+            else:
+                # Generic helpful response
+                return f"Based on the article about '{title}', I can provide insights on the key points, implications, trends, and context. The article covers important developments that have broader significance. Could you be more specific about what aspect you'd like me to focus on?"
+                
+        except Exception as e:
+            logger.error(f"Rule-based chat error: {e}")
+            return "I can help you understand this article better. Could you ask me about the key takeaways, implications, or any specific aspect of the content?"
+    
     async def mark_article_read(self, article_id: str):
         """Mark an article as read or toggle read status"""
-        # Check current read status
         try:
             with sqlite3.connect(self.news_engine.db_path) as conn:
                 cursor = conn.execute("SELECT is_read FROM articles WHERE id = ?", (article_id,))
@@ -435,7 +650,7 @@ class APIRoutes:
                 'articles_passed': passed_count,
                 'sources_count': sum(len(sources) for sources in self.news_engine.sources.values()),
                 'database': 'connected',
-                'features': ['Open Source LLM Summaries', 'Priority Detection', 'Article Management', 'Pass System', 'Reading List']
+                'features': ['Open Source LLM Summaries', 'Priority Detection', 'Article Management', 'Pass System', 'Reading List', 'Article Detail View', 'AI Chat']
             }
         except Exception as e:
             return {

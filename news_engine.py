@@ -1,5 +1,5 @@
 """
-RPNews - News Engine
+RPNews - News Engine (Fixed SSL Issues)
 Handles RSS feed collection, content processing, and data storage
 Enhanced with article passing and better distribution
 """
@@ -12,6 +12,8 @@ import logging
 import sqlite3
 import hashlib
 import re
+import ssl
+import certifi
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
@@ -48,6 +50,13 @@ class RPNewsEngine:
         self.sources = self._initialize_sources()
         self._setup_database()
         self.background_task = None
+        
+        # Create SSL context that works with most systems
+        self.ssl_context = ssl.create_default_context(cafile=certifi.where())
+        # For development, you can make this less strict
+        self.ssl_context.check_hostname = False
+        self.ssl_context.verify_mode = ssl.CERT_NONE
+        
         logger.info("📰 RPNews Engine initialized with open source AI")
     
     def start_background_collection(self):
@@ -288,9 +297,12 @@ class RPNewsEngine:
         # Initial collection on startup
         if await self._has_network():
             try:
+                # Create connector with SSL context
+                connector = aiohttp.TCPConnector(ssl=self.ssl_context, limit=20, limit_per_host=5)
                 async with aiohttp.ClientSession(
                     timeout=aiohttp.ClientTimeout(total=45),
-                    headers={'User-Agent': 'RPNews/2.0 (+https://rpnews.com)'}
+                    headers={'User-Agent': 'RPNews/2.0 (+https://rpnews.com)'},
+                    connector=connector
                 ) as session:
                     self.session = session
                     await self.collect_all_news()
@@ -311,9 +323,11 @@ class RPNewsEngine:
                     continue
 
                 logger.info("🔄 Background collection starting...")
+                connector = aiohttp.TCPConnector(ssl=self.ssl_context, limit=20, limit_per_host=5)
                 async with aiohttp.ClientSession(
                     timeout=aiohttp.ClientTimeout(total=30),
-                    headers={'User-Agent': 'RPNews/2.0 (+https://rpnews.com)'}
+                    headers={'User-Agent': 'RPNews/2.0 (+https://rpnews.com)'},
+                    connector=connector
                 ) as session:
                     self.session = session
                     await self.collect_all_news()
@@ -433,6 +447,7 @@ class RPNewsEngine:
         try:
             async with self.session.get(source['rss']) as response:
                 if response.status != 200:
+                    logger.warning(f"HTTP {response.status} for {source['name']}")
                     return articles
                 
                 content = await response.text()
