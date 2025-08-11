@@ -268,29 +268,48 @@ class RPNewsEngine:
         # Average reading speed: 200 words per minute
         minutes = max(1, round(words / 200))
         return min(minutes, 15)  # Cap at 15 minutes
-    
+
+    async def _has_network(self) -> bool:
+        """Check if network connectivity is available"""
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection("8.8.8.8", 53), timeout=3
+            )
+            writer.close()
+            await writer.wait_closed()
+            return True
+        except Exception:
+            return False
+
     async def background_collection(self):
         """Enhanced background collection with initial startup collection"""
         logger.info("🚀 Starting initial news collection...")
-        
+
         # Initial collection on startup
-        try:
-            async with aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=45),
-                headers={'User-Agent': 'RPNews/2.0 (+https://rpnews.com)'}
-            ) as session:
-                self.session = session
-                await self.collect_all_news()
-                self.session = None
-            logger.info("✅ Initial collection completed")
-        except Exception as e:
-            logger.error(f"Initial collection error: {e}")
-        
+        if await self._has_network():
+            try:
+                async with aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=45),
+                    headers={'User-Agent': 'RPNews/2.0 (+https://rpnews.com)'}
+                ) as session:
+                    self.session = session
+                    await self.collect_all_news()
+                    self.session = None
+                logger.info("✅ Initial collection completed")
+            except Exception as e:
+                logger.error(f"Initial collection error: {e}")
+        else:
+            logger.warning("🌐 Network unavailable - skipping initial collection")
+
         # Continue with regular collection cycle
         while True:
             try:
                 await asyncio.sleep(3600)  # Wait 1 hour
-                
+
+                if not await self._has_network():
+                    logger.warning("🌐 Network unavailable - skipping background collection")
+                    continue
+
                 logger.info("🔄 Background collection starting...")
                 async with aiohttp.ClientSession(
                     timeout=aiohttp.ClientTimeout(total=30),
@@ -299,9 +318,9 @@ class RPNewsEngine:
                     self.session = session
                     await self.collect_all_news()
                     self.session = None
-                
+
                 logger.info("✅ Background collection complete. Next run in 1 hour.")
-                
+
             except Exception as e:
                 logger.error(f"Background collection error: {str(e)}")
                 await asyncio.sleep(600)  # Wait 10 minutes on error

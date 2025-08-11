@@ -6,6 +6,7 @@ Handles AI-powered summarization with open source LLMs
 import re
 import logging
 import os
+import socket
 from typing import Dict, List
 
 logger = logging.getLogger(__name__)
@@ -55,52 +56,66 @@ class RPNewsAI:
         except Exception as e:
             logger.info(f"ℹ️ Ollama not available: {e}")
         
-        # Try Hugging Face Transformers if Ollama failed
+        # Try Hugging Face Transformers if Ollama failed and network is available
         if not self.ai_available:
-            try:
-                from transformers import pipeline
-                import torch
-                
-                # Choose model based on available memory/compute
-                model_options = [
-                    "facebook/bart-large-cnn",  # Best quality
-                    "sshleifer/distilbart-cnn-12-6",  # Faster, good quality
-                    "google/pegasus-xsum",  # Good for news
-                    "t5-small"  # Lightweight fallback
-                ]
-                
-                self.summarizer = None
-                for model_name in model_options:
-                    try:
-                        logger.info(f"📦 Attempting to load {model_name}...")
-                        self.summarizer = pipeline(
-                            "summarization",
-                            model=model_name,
-                            device=-1,  # CPU only for deployment
-                            max_length=1024
-                        )
-                        self.ai_available = True
-                        self.transformers_available = True
-                        self.ai_type = f"transformers_{model_name.split('/')[-1]}"
-                        logger.info(f"✅ Transformers model loaded: {model_name}")
-                        break
-                    except Exception as model_error:
-                        logger.warning(f"Failed to load {model_name}: {model_error}")
-                        continue
-                
-                if not self.summarizer:
-                    logger.info("📝 No transformers models available, using enhanced rules")
-                    
-            except ImportError:
-                logger.info("📝 Transformers not available, using enhanced rule-based analysis")
-            except Exception as e:
-                logger.warning(f"⚠️ Transformers setup failed: {e}")
+            if self._has_network():
+                try:
+                    from transformers import pipeline
+                    import torch
+
+                    # Choose model based on available memory/compute
+                    model_options = [
+                        "facebook/bart-large-cnn",  # Best quality
+                        "sshleifer/distilbart-cnn-12-6",  # Faster, good quality
+                        "google/pegasus-xsum",  # Good for news
+                        "t5-small"  # Lightweight fallback
+                    ]
+
+                    self.summarizer = None
+                    for model_name in model_options:
+                        try:
+                            logger.info(f"📦 Attempting to load {model_name}...")
+                            self.summarizer = pipeline(
+                                "summarization",
+                                model=model_name,
+                                device=-1,  # CPU only for deployment
+                                max_length=1024
+                            )
+                            self.ai_available = True
+                            self.transformers_available = True
+                            self.ai_type = f"transformers_{model_name.split('/')[-1]}"
+                            logger.info(f"✅ Transformers model loaded: {model_name}")
+                            break
+                        except Exception as model_error:
+                            logger.warning(f"Failed to load {model_name}: {model_error}")
+                            if any(err in str(model_error) for err in ["ProxyError", "MaxRetryError"]):
+                                logger.info("📝 Hugging Face unreachable - skipping transformers")
+                                break
+                            continue
+
+                    if not self.summarizer:
+                        logger.info("📝 No transformers models available, using enhanced rules")
+
+                except ImportError:
+                    logger.info("📝 Transformers not available, using enhanced rule-based analysis")
+                except Exception as e:
+                    logger.warning(f"⚠️ Transformers setup failed: {e}")
+            else:
+                logger.info("📝 Network unavailable - using enhanced rule-based analysis")
         
         # Log final configuration
         if self.ai_available:
             logger.info(f"🎯 AI System Ready: {self.ai_type}")
         else:
             logger.info("📝 Using enhanced rule-based analysis")
+
+    def _has_network(self) -> bool:
+        """Check if basic network connectivity is available"""
+        try:
+            socket.create_connection(("8.8.8.8", 53), timeout=3).close()
+            return True
+        except OSError:
+            return False
     
     def generate_summary(self, title: str, content: str, category: str) -> str:
         """Generate intelligent summary using best available open source AI"""
