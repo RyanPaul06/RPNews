@@ -1,4 +1,4 @@
-// RPNews Enhanced - Frontend JavaScript with Open Source LLM Support
+// RPNews Enhanced - Frontend JavaScript with Article Detail Navigation
 
 let currentData = null;
 let currentView = 'briefing';
@@ -200,13 +200,15 @@ async function passArticle(articleId, element) {
     }
 }
 
-function openArticle(url, summaryElement) {
-    // Mark the summary as clicked (visual feedback)
-    if (summaryElement) {
-        summaryElement.style.background = 'linear-gradient(135deg, #e8ecff, #d4e3ff)';
-    }
-    
-    // Open article in new tab
+// NEW: Navigate to article detail page
+function openArticleDetail(articleId) {
+    window.location.href = `/article?id=${articleId}`;
+}
+
+// UPDATED: Keep original function for opening external links
+function openArticleExternal(url, event) {
+    // Prevent navigation to detail page
+    event.stopPropagation();
     window.open(url, '_blank', 'noopener,noreferrer');
 }
 
@@ -476,15 +478,15 @@ function createArticleCard(article, showPassButton = false) {
     const starBtnClass = article.isStarred ? 'starred' : '';
     const readTitle = article.isRead ? 'Mark as unread' : 'Mark as read';
     
-    // Create action buttons
+    // Create action buttons with event.stopPropagation() to prevent card click
     let actionButtons = `
         <button class="action-btn read-btn ${readBtnClass}" 
-                onclick="markAsRead('${escapeHtml(article.id)}', this)" 
+                onclick="event.stopPropagation(); markAsRead('${escapeHtml(article.id)}', this)" 
                 title="${readTitle}">
             ${readIcon}
         </button>
         <button class="action-btn star-btn ${starBtnClass}" 
-                onclick="toggleStar('${escapeHtml(article.id)}', this)" 
+                onclick="event.stopPropagation(); toggleStar('${escapeHtml(article.id)}', this)" 
                 title="Star article">
             ${starIcon}
         </button>
@@ -494,7 +496,7 @@ function createArticleCard(article, showPassButton = false) {
     if (showPassButton || currentView === 'briefing') {
         actionButtons += `
             <button class="action-btn pass-btn" 
-                    onclick="passArticle('${escapeHtml(article.id)}', this)" 
+                    onclick="event.stopPropagation(); passArticle('${escapeHtml(article.id)}', this)" 
                     title="Pass/dismiss article">
                 ✕
             </button>
@@ -502,7 +504,7 @@ function createArticleCard(article, showPassButton = false) {
     }
     
     return `
-        <article class="article-card ${readClass} ${starredClass}">
+        <article class="article-card ${readClass} ${starredClass}" onclick="openArticleDetail('${escapeHtml(article.id)}')" style="cursor: pointer;">
             <div class="article-actions">
                 ${actionButtons}
             </div>
@@ -516,19 +518,22 @@ function createArticleCard(article, showPassButton = false) {
                         <span class="reading-time">${article.readingTime || 2}min read</span>
                     </div>
                 </div>
-                <h3 class="article-title" onclick="openArticle('${escapeHtml(article.url)}', this)">
+                <h3 class="article-title">
                     ${escapeHtml(article.title)}
                 </h3>
             </div>
             
             <div class="article-content">
-                ${article.aiSummary ? `
-                    <div class="article-summary" onclick="openArticle('${escapeHtml(article.url)}', this)" title="Click to read full article">
-                        ${escapeHtml(article.aiSummary)}
-                    </div>
-                ` : ''}
-                <p class="article-excerpt">${escapeHtml(article.excerpt)}</p>
+                <div class="article-preview">
+                    <p class="article-excerpt">${escapeHtml(article.excerpt)}</p>
+                    <div class="click-hint">👆 Click to read AI summary and ask questions</div>
+                </div>
                 ${tagsHtml ? `<div class="article-tags">${tagsHtml}</div>` : ''}
+                <div class="article-footer">
+                    <button class="external-link-btn" onclick="openArticleExternal('${escapeHtml(article.url)}', event)" title="Open original article">
+                        🔗 Read Original
+                    </button>
+                </div>
             </div>
         </article>
     `;
